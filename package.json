@@ -1,0 +1,13 @@
+{
+  "name": "arrecifes-de-memoria",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Juego estático local con datos reales OSM; Playwright solo para pruebas",
+  "scripts": {
+    "test": "node --test tests/game.test.mjs",
+    "test:functional": "node --test tests/browser.test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.58.2"
+  }
+}

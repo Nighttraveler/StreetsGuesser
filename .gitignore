@@ -1,0 +1,11 @@
+node_modules/
+__pycache__/
+*.py[cod]
+test-results/
+.env
+.env.*
+!.env.example
+.worktrees/
+coverage/
+*.tar
+*.tar.gz

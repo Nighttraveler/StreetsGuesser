@@ -1,0 +1,100 @@
+2026-11-20T00:49:09-03:00
+v22.22.3
+12.1.0
+Chromium 151.0.7922.173 built on Debian GNU/Linux 13 (trixie)
+npm notice run arrecifes-de-memoria@1.0.0 test
+npm notice run node --test tests/game.test.mjs
+TAP version 13
+# Subtest: normaliza mayúsculas, tildes, espacios y todos los prefijos pedidos
+ok 1 - normaliza mayúsculas, tildes, espacios y todos los prefijos pedidos
+  ---
+  duration_ms: 6.343338
+  type: 'test'
+  ...
+# Subtest: alias Merlassino explícito, nombres originales y rechazos
+ok 2 - alias Merlassino explícito, nombres originales y rechazos
+  ---
+  duration_ms: 2.07049
+  type: 'test'
+  ...
+# Subtest: selección exacta por nivel y extremos aleatorios con dataset real
+ok 3 - selección exacta por nivel y extremos aleatorios con dataset real
+  ---
+  duration_ms: 11.343232
+  type: 'test'
+  ...
+# Subtest: puntos, racha, pista, error, salto y doble envío
+ok 4 - puntos, racha, pista, error, salto y doble envío
+  ---
+  duration_ms: 2.769054
+  type: 'test'
+  ...
+# Subtest: pista usa letra y palabras sin prefijos
+ok 5 - pista usa letra y palabras sin prefijos
+  ---
+  duration_ms: 1.075466
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 320.470896
+npm notice run arrecifes-de-memoria@1.0.0 test:functional
+npm notice run node --test tests/browser.test.mjs
+TAP version 13
+# Subtest: HTTP real: mapa, controles, Enter, alias, puntos, error, pista y salto persistente
+ok 1 - HTTP real: mapa, controles, Enter, alias, puntos, error, pista y salto persistente
+  ---
+  duration_ms: 7514.272829
+  type: 'test'
+  ...
+# Subtest: niveles exactos, respuesta con tildes normalizadas y diseño móvil sin desborde
+ok 2 - niveles exactos, respuesta con tildes normalizadas y diseño móvil sin desborde
+  ---
+  duration_ms: 2798.025732
+  type: 'test'
+  ...
+# Subtest: zoom suave normal y movimiento reducido inmediato
+ok 3 - zoom suave normal y movimiento reducido inmediato
+  ---
+  duration_ms: 4050.15857
+  type: 'test'
+  ...
+# Subtest: error de carga visible y reintento recuperable sin inventar calles
+ok 4 - error de carga visible y reintento recuperable sin inventar calles
+  ---
+  duration_ms: 2247.764019
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 18646.375905
+test_all_classes_and_exclusions (__main__.GIS.test_all_classes_and_exclusions) ... ok
+test_clipping_and_split (__main__.GIS.test_clipping_and_split) ... ok
+test_examples (__main__.GIS.test_examples) ... ok
+test_group_disconnected_and_mixed_classes (__main__.GIS.test_group_disconnected_and_mixed_classes) ... ok
+test_levels_and_source_accounting (__main__.GIS.test_levels_and_source_accounting) ... ok
+test_locality_not_partido (__main__.GIS.test_locality_not_partido) ... ok
+test_missing_name_and_rounding_collapse (__main__.GIS.test_missing_name_and_rounding_collapse) ... ok
+test_no_exact_duplicate_geometries (__main__.GIS.test_no_exact_duplicate_geometries) ... ok
+test_precision_and_collapsed_vertices (__main__.GIS.test_precision_and_collapsed_vertices) ... ok
+test_real_geometry_and_traceability (__main__.GIS.test_real_geometry_and_traceability) ... ok
+test_uniqueness_and_order (__main__.GIS.test_uniqueness_and_order) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.913s
+
+OK
+ed1b5540bd2df7e3e98534675857ddcc2ebef21b0801a2ced47eaf6677567c5e  arrecifes_calles.json
+found 0 vulnerabilities

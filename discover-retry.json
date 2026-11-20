@@ -1,0 +1,361 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-11-19T22:35:28Z",
+    "timestamp_areas_base": "2026-11-19T19:56:48Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 198439470,
+  "lat": -34.0674983,
+  "lon": -60.1087380,
+  "tags": {
+    "addr:postcode": "2740",
+    "name": "Arrecifes",
+    "place": "town",
+    "population": "26400",
+    "source_ref": "http://earth-info.nga.mil/gns/html/cntyfile/ar.zip",
+    "website": "https://arrecifes.gob.ar/",
+    "wikidata": "Q2706121",
+    "wikipedia": "es:Arrecifes (Argentina)"
+  }
+},
+{
+  "type": "node",
+  "id": 724160935,
+  "lat": -34.0615690,
+  "lon": -60.0997084,
+  "tags": {
+    "name": "Arrecifes",
+    "public_transport": "station",
+    "railway": "station"
+  }
+},
+{
+  "type": "node",
+  "id": 5707036315,
+  "lat": -34.0590044,
+  "lon": -60.0930183,
+  "tags": {
+    "addr:city": "Arrecifes",
+    "addr:full": "Ruta Nacional 8 km 175.500",
+    "addr:housenumber": "150",
+    "addr:postcode": "2740",
+    "addr:street": "Avenida Rubén Luis Di Palma",
+    "name": "Arrecifes",
+    "tourism": "hotel",
+    "website": "https://hotelarrecifes.com.ar/"
+  }
+},
+{
+  "type": "way",
+  "id": 29388481,
+  "center": {
+    "lat": -34.6469120,
+    "lon": -58.6501190
+  },
+  "tags": {
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes",
+    "oneway": "yes",
+    "surface": "concrete"
+  }
+},
+{
+  "type": "way",
+  "id": 30390971,
+  "center": {
+    "lat": -34.6523090,
+    "lon": -58.6512984
+  },
+  "tags": {
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes",
+    "oneway": "yes",
+    "surface": "concrete"
+  }
+},
+{
+  "type": "way",
+  "id": 30393173,
+  "center": {
+    "lat": -34.6400847,
+    "lon": -58.6485327
+  },
+  "tags": {
+    "highway": "residential",
+    "name": "Arrecifes",
+    "surface": "concrete"
+  }
+},
+{
+  "type": "way",
+  "id": 52312780,
+  "center": {
+    "lat": -34.7941266,
+    "lon": -58.2670986
+  },
+  "tags": {
+    "alt_name": "Calle 148",
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes",
+    "surface": "unpaved"
+  }
+},
+{
+  "type": "way",
+  "id": 58071244,
+  "center": {
+    "lat": -34.6354461,
+    "lon": -58.6473228
+  },
+  "tags": {
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes"
+  }
+},
+{
+  "type": "way",
+  "id": 83365019,
+  "center": {
+    "lat": -34.4548638,
+    "lon": -58.9302591
+  },
+  "tags": {
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes",
+    "surface": "unpaved"
+  }
+},
+{
+  "type": "way",
+  "id": 83613525,
+  "center": {
+    "lat": -34.7974162,
+    "lon": -58.6204731
+  },
+  "tags": {
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes"
+  }
+},
+{
+  "type": "way",
+  "id": 84121123,
+  "center": {
+    "lat": -34.7990607,
+    "lon": -58.6229507
+  },
+  "tags": {
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes"
+  }
+},
+{
+  "type": "way",
+  "id": 91844807,
+  "center": {
+    "lat": -34.7901583,
+    "lon": -58.2579839
+  },
+  "tags": {
+    "alt_name": "Calle 148",
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes",
+    "surface": "unpaved"
+  }
+},
+{
+  "type": "way",
+  "id": 128476064,
+  "center": {
+    "lat": -34.7953249,
+    "lon": -58.6182460
+  },
+  "tags": {
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes"
+  }
+},
+{
+  "type": "way",
+  "id": 128572649,
+  "center": {
+    "lat": -34.7898796,
+    "lon": -58.6118072
+  },
+  "tags": {
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes"
+  }
+},
+{
+  "type": "way",
+  "id": 136647100,
+  "center": {
+    "lat": -34.7891999,
+    "lon": -58.2560878
+  },
+  "tags": {
+    "alt_name": "Calle 148",
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes",
+    "surface": "unpaved"
+  }
+},
+{
+  "type": "way",
+  "id": 142710476,
+  "center": {
+    "lat": -36.7294912,
+    "lon": -56.6913129
+  },
+  "tags": {
+    "highway": "residential",
+    "name": "Arrecifes",
+    "surface": "sand"
+  }
+},
+{
+  "type": "way",
+  "id": 190117430,
+  "center": {
+    "lat": -34.8070880,
+    "lon": -58.6327081
+  },
+  "tags": {
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes"
+  }
+},
+{
+  "type": "way",
+  "id": 241867199,
+  "center": {
+    "lat": -34.7271312,
+    "lon": -58.8045867
+  },
+  "tags": {
+    "highway": "residential",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "40",
+    "name": "Arrecifes",
+    "surface": "unpaved"
+  }
+},
+{
+  "type": "way",
+  "id": 245524791,
+  "center": {
+    "lat": -34.8024851,
+    "lon": -58.6263518
+  },
+  "tags": {
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes"
+  }
+},
+{
+  "type": "way",
+  "id": 245524793,
+  "center": {
+    "lat": -34.8035160,
+    "lon": -58.6282458
+  },
+  "tags": {
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes"
+  }
+},
+{
+  "type": "way",
+  "id": 387956236,
+  "center": {
+    "lat": -34.7915459,
+    "lon": -58.2608105
+  },
+  "tags": {
+    "alt_name": "Calle 148",
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes",
+    "surface": "unpaved"
+  }
+},
+{
+  "type": "way",
+  "id": 653680162,
+  "center": {
+    "lat": -34.8007702,
+    "lon": -58.6249746
+  },
+  "tags": {
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes"
+  }
+},
+{
+  "type": "way",
+  "id": 653680181,
+  "center": {
+    "lat": -34.7918551,
+    "lon": -58.6141157
+  },
+  "tags": {
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes"
+  }
+},
+{
+  "type": "way",
+  "id": 653680182,
+  "center": {
+    "lat": -34.7938407,
+    "lon": -58.6164610
+  },
+  "tags": {
+    "highway": "residential",
+    "maxspeed": "40",
+    "name": "Arrecifes"
+  }
+},
+{
+  "type": "relation",
+  "id": 3743598,
+  "center": {
+    "lat": -34.0665769,
+    "lon": -60.1009671
+  },
+  "tags": {
+    "admin_level": "8",
+    "boundary": "administrative",
+    "name": "Arrecifes",
+    "type": "boundary",
+    "wikidata": "Q2706121",
+    "wikipedia": "es:Arrecifes (Argentina)"
+  }
+}
+
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "task_id": "t_567c189a",
+  "summary": "Extracción GIS terminada: 173 calles lógicas, 407 segmentos, niveles 15/13/145. Fuente Overpass real, localidad distinta del partido, geometrías recortadas al límite OSM y redondeadas a 5 decimales. 11 pruebas OK y reproducción determinista verificada.",
+  "metadata": {
+    "architectural_verdict": "approved",
+    "data_path": "/home/fer/projects/juego-calles-arrecifes/arrecifes_calles.json",
+    "documentation_path": "/home/fer/projects/juego-calles-arrecifes/GIS_README.md",
+    "tests_path": "/home/fer/projects/juego-calles-arrecifes/GIS_TEST_RESULTS.txt",
+    "schema": "Array de {nombre,nivel,nombres_originales,clases,osm_way_ids,segmentos:[{osm_way_id,highway,coordenadas:[[lon,lat],...]}]}; WGS84, máximo 5 decimales; renderizar cada segmento separado.",
+    "source_timestamp": "2026-11-19T22:37:35Z",
+    "osm_locality_relation": 3743598,
+    "output_sha256": "ed1b5540bd2df7e3e98534675857ddcc2ebef21b0801a2ced47eaf6677567c5e",
+    "developer_warning": "El nombre real es Avenida Carlos Merlassino. Si debe aceptarse merlassino como respuesta, implementar alias explícito sin renombrar el dataset.",
+    "downstream_task": "t_edec234d",
+    "board_transition": "PENDIENTE: en este turno las herramientas kanban_* no están expuestas como invocables; búsqueda no las lista y tool_describe/tool_call responden que son herramientas directas. No se ejecutó complete ni se alteró SQLite/CLI como atajo. El archivo es un handoff local, no evidencia de cierre en el tablero."
+  },
+  "artifacts": [
+    "/home/fer/projects/juego-calles-arrecifes/arrecifes_calles.json",
+    "/home/fer/projects/juego-calles-arrecifes/arrecifes_metadata.json",
+    "/home/fer/projects/juego-calles-arrecifes/GIS_README.md",
+    "/home/fer/projects/juego-calles-arrecifes/GIS_TEST_RESULTS.txt"
+  ]
+}

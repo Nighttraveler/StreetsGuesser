@@ -1,0 +1,12 @@
+# Juego de calles de Arrecifes — especificación previa
+
+Alcance de t_edec234d, proyecto independiente de Lawyers Hub, sin repositorio Git.
+
+- Aplicación estática ES modules, HTML y CSS locales, datos reales por fetch('./arrecifes_calles.json'), sin servicios externos, fuentes remotas ni mosaicos. No modificar GIS.
+- SVG con proyección equirectangular local (longitud escalada por coseno de latitud central, norte arriba), todos los segmentos independientes; mapa mudo. Calle activa resaltada completa. Zoom interpolado al encuadre de todos sus tramos, sin animación con prefers-reduced-motion. Controles de acercar, alejar y vista general para contexto.
+- Tres niveles no acumulativos según nivel del JSON. Selección uniforme mediante Math.random, evitando repetición inmediata si hay alternativa. Cambio de nivel reinicia puntos y racha, claramente indicado.
+- Respuestas: trim, minúsculas, NFD sin diacríticos, espacios compactos, eliminación repetida de prefijos iniciales Av./Av/Avenida/Calle/Dr./Dr/Gral./Gral con límites de palabra. No quitar nombres propios ni aceptar subcadenas. Alias merlassino solo para Avenida Carlos Merlassino (y Avenida Merlassino si fuese nombre fuente). Aceptar nombres_originales.
+- Correcta: +10 puntos y +1 racha; con pista +5. Error: sin puntos y racha a cero; mantener ronda para reintentar. Pista: primera letra y cantidad de palabras del nombre sin prefijos, sin penalización de racha. Saltar: sin puntos, racha a cero, nombre canónico visible indefinidamente hasta pulsar Siguiente calle. Acertar también requiere Siguiente; doble envío no suma.
+- UI en español adaptable a móvil y escritorio, etiquetas, foco visible, mensajes live, carga y errores recuperables, atribución visible © OpenStreetMap contributors / ODbL. Enlaces de atribución voluntarios, ninguna petición externa al jugar.
+- Pruebas previas a entrega: node:test para reglas (normalización/alias/límites, selección y no repetición, estado/puntuación/racha, pista); Playwright con Chromium local para HTTP mismo origen, carga de 407 segmentos reales, resaltado, Enter, error, pista, saltar persistente, niveles, vista/zoom, movimiento reducido y móvil, sin peticiones externas ni errores. Reejecutar tests GIS y comprobar SHA-256 original.
+- Publicación QA: solo index.html, styles.css, game.mjs, app.mjs y arrecifes_calles.json. No publicar fuentes raw OSM, herramientas, node_modules ni directorio completo. Servidor temporal de pruebas ligado a loopback y cerrado tras probar. Servidor persistente/aprobación son alcance exclusivo de QA hija.

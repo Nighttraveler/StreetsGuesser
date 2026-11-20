@@ -1,0 +1,17 @@
+Installed 2 packages in 39ms
+test_all_classes_and_exclusions (__main__.GIS.test_all_classes_and_exclusions) ... ok
+test_clipping_and_split (__main__.GIS.test_clipping_and_split) ... ok
+test_examples (__main__.GIS.test_examples) ... ok
+test_group_disconnected_and_mixed_classes (__main__.GIS.test_group_disconnected_and_mixed_classes) ... ok
+test_levels_and_source_accounting (__main__.GIS.test_levels_and_source_accounting) ... ok
+test_locality_not_partido (__main__.GIS.test_locality_not_partido) ... ok
+test_missing_name_and_rounding_collapse (__main__.GIS.test_missing_name_and_rounding_collapse) ... ok
+test_no_exact_duplicate_geometries (__main__.GIS.test_no_exact_duplicate_geometries) ... ok
+test_precision_and_collapsed_vertices (__main__.GIS.test_precision_and_collapsed_vertices) ... ok
+test_real_geometry_and_traceability (__main__.GIS.test_real_geometry_and_traceability) ... ok
+test_uniqueness_and_order (__main__.GIS.test_uniqueness_and_order) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.941s
+
+OK
