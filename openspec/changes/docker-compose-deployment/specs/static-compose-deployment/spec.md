@@ -1,21 +1,21 @@
 ## ADDED Requirements
 
 ### Requirement: Reproducible static image
-La imagen SHALL usar la base oficial nginx stable Alpine fijada mediante versión concreta y digest de índice multi-arquitectura verificado en el registry y documentado. El build local SHALL ser nativo, permitir exclusivamente Dockerfile, nginx.conf y los cinco publicables en su contexto, limpiar páginas de ejemplo y copiar explícitamente solo index.html, styles.css, game.mjs, app.mjs y arrecifes_calles.json al docroot. No SHALL modificar lógica ni GIS, ni requerir otros runtimes de aplicación, servicios auxiliares o un registry propio.
+La imagen SHALL usar una base oficial Python Alpine fijada mediante versión concreta y digest de índice multi-arquitectura verificado en el registry y documentado. El build local SHALL ser nativo, permitir exclusivamente Dockerfile, serve_static.py y los cinco publicables en su contexto, y copiar explícitamente solo index.html, styles.css, game.mjs, app.mjs y arrecifes_calles.json al docroot nuevo. El lanzador SHALL usar solo biblioteca estándar y quedar fuera del docroot. La imagen SHALL NOT incluir Nginx, proxy, dependencias adicionales, cambios GIS/de lógica ni servicios auxiliares.
 
 #### Scenario: Construcción nativa
 - **WHEN** Compose arranca desde un checkout preparado sin su imagen local
 - **THEN** construye desde el contexto del checkout y sirve exclusivamente los cinco originales en una imagen con arquitectura efectiva verificable, sin descargar la etiqueta privada
 
 ### Requirement: Restricciones de ejecución Compose
-El proyecto SHALL llamarse por defecto arrecifes-de-memoria y ejecutar solo web, en una red bridge propia, con una única publicación TCP configurable (127.0.0.1:8090 por defecto hacia 8080 interno). SHALL usar el proceso nginx directo como usuario no root, rootfs read-only, tmpfs /tmp de 16 MiB para PID y temporales, cap_drop ALL, no-new-privileges, restart unless-stopped y logs stdout/stderr json-file 10m/3. No SHALL usar contenedor privilegiado, socket Docker, nombre fijo de contenedor, host networking, proxy obligatorio, bind mounts, persistencia ni secretos o entorno del host. .env.example SHALL documentar la interpolación, sin env_file de runtime.
+El proyecto SHALL llamarse por defecto arrecifes-de-memoria y ejecutar solo web, en una red bridge propia, con una única publicación TCP configurable (127.0.0.1:8090 por defecto hacia 8080 interno). SHALL usar el proceso Python directo como usuario no root, rootfs read-only, tmpfs /tmp de 16 MiB, cap_drop ALL, no-new-privileges, restart unless-stopped y logs stdout/stderr json-file 10m/3. SHALL NOT usar contenedor privilegiado, socket Docker, nombre fijo de contenedor, host networking, bind mounts, persistencia, secretos ni entorno del host. .env.example SHALL documentar la interpolación, sin env_file de runtime.
 
 #### Scenario: Proceso sano bajo restricciones
 - **WHEN** se inicia el contenedor endurecido
 - **THEN** wget comprueba HTTP / en 127.0.0.1:8080 cada 30 s, con timeout 3 s, start_period 5 s y 3 reintentos, y la raíz permanece de solo lectura
 
 ### Requirement: Frontera HTTP e integridad
-Nginx SHALL servir el índice y los cinco estáticos con tipos HTML text/html, CSS text/css, módulos application/javascript y JSON application/json, más Cache-Control no-cache. SHALL usar try_files con 404 real, sin listados ni fallback; los archivos privados no SHALL exponerse. El dataset y la atribución OSM SHALL permanecer intactos.
+El servidor SHALL usar una lista exacta que permita GET y HEAD de `/` y los cinco estáticos con tipos HTML text/html, CSS text/css, módulos application/javascript y JSON application/json, más Cache-Control no-cache. Las rutas desconocidas o privadas SHALL devolver 404 real, sin listados ni fallback y sin acceso a disco a partir de rutas de entrada. El dataset y la atribución OSM SHALL permanecer intactos.
 
 #### Scenario: Cliente HTTP y navegador real
 - **WHEN** se consulta Compose desde el host y se abre el juego con Chromium

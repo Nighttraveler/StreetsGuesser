@@ -1,6 +1,6 @@
 # Especificación de despliegue Compose — t_e3854ae8
 
-Estado: arquitectura aprobada para implementación por t_d76dc2c6 y verificación posterior. Este documento NO afirma que exista ya la imagen ni que se haya migrado el servicio. No se modifica systemd en esta etapa.
+Estado: las secciones 1–6 conservan el diseño histórico de t_e3854ae8. La sección 7 registra la decisión posterior del usuario sobre el servidor de la imagen. No se modifica systemd en esta etapa.
 
 ## 1. Inventario verificado
 
@@ -92,3 +92,12 @@ RPO: contenido estático de la última versión respaldada, sin estado de usuari
 Ejecutado: inspección de unidad/estado/drop-ins, archivos publicados, listeners, arquitectura, versiones Docker/Compose y acceso al daemon; SHA-256 de fuente/publicación coincidentes; npm test con 5 pruebas aprobadas y 0 fallos. No se ejecutó build, Compose ni prueba HTTP del contenedor porque corresponden a implementación.
 
 Una solicitud curl al servicio LAN fue bloqueada por la política de ejecución del entorno antes de realizarse. No se intentó eludirla: el estado actual se acredita mediante systemctl/ss y los archivos en disco, no por respuesta HTTP. Implementación/QA deben obtener evidencia HTTP autorizada o reportar ese bloqueo. La inspección no cambió servicios, puertos ni archivos existentes; únicamente se agregó esta especificación.
+
+## 7. Decisión posterior del usuario: sin Nginx
+
+La entrega de t_d76dc2c6 va sin Nginx ni proxy. Esta corrección sustituye la decisión A y las instrucciones de la sección 3 específicas de Nginx. La prohibición histórica de Git de la sección 1 ya fue sustituida por la autorización recogida en AGENTS.md. No cambian los demás requisitos técnicos ni el límite de autorización operativa.
+
+- Una sola imagen sobre Python Alpine oficial, con tag versionado y digest multi-arquitectura verificado. Usar únicamente biblioteca estándar; no instalar dependencias Python. La aplicación sigue siendo estática y no cambia su lógica.
+- Sustituir `nginx.conf` por `serve_static.py`. Copiar explícitamente los mismos cinco archivos como único contenido del docroot, y mantener el lanzador fuera de él. Servir solo `/` y las cinco rutas permitidas, con MIME explícito, `no-cache`, sin listado, sin fallback y con 404 real. No usar `python -m http.server` sobre un directorio completo.
+- Ejecutar directamente como usuario no root en 8080. Escribir logs en los flujos del contenedor, sin PID ni temporales en el sistema de archivos raíz. Conservar el tmpfs de 16 MiB, el healthcheck interno HTTP, el reinicio, los límites de logs y el resto de las restricciones Compose.
+- En las secciones 4–5, el archivo del servidor que se respalda es `serve_static.py`; comprobar el proceso Python del contenedor en lugar de Nginx y demostrar que el arranque no depende del Python del host ni de systemd. Esta variante se limita a uso local o LAN confiable, no a Internet público. El corte real sigue fuera del alcance de implementación.
