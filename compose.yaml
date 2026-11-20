@@ -1,0 +1,32 @@
+name: arrecifes-de-memoria
+
+services:
+  web:
+    build:
+      context: .
+    image: ${ARRECIFES_IMAGE:-arrecifes-de-memoria:local}
+    pull_policy: never
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${HTTP_PORT:-8090}:8080/tcp"
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - "no-new-privileges:true"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
+networks:
+  default:
+    driver: bridge

@@ -1,0 +1,9 @@
+# Lista permitida: no enviar el resto del checkout al builder.
+**
+!Dockerfile
+!serve_static.py
+!index.html
+!styles.css
+!game.mjs
+!app.mjs
+!arrecifes_calles.json
