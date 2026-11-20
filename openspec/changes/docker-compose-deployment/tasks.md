@@ -10,7 +10,7 @@
 
 ## 3. Verificación y entrega
 - [x] Ejecutar validadores OpenSpec, guard, regresión npm y navegador, diff-check y smoke real.
-- [ ] Instalar hooks, revisar índice, confirmar trailer único por commit protegido y entregar worktree limpio y evidencia a QA sin merge, push ni corte.
+- [x] Instalar hooks, revisar índice, confirmar trailer único por commit protegido y entregar worktree limpio y evidencia a QA sin merge, push ni corte.
 
 ## Evidencia de ejecución (2026-11-20, variante sin Nginx)
 - `make openspec-validate CHANGE=docker-compose-deployment`: válido; `openspec validate --all --strict --no-interactive`: 2 cambios aprobados.
@@ -22,3 +22,4 @@
 - Stop/start, reinicio automático por salida de PID 1, recreación y logs aprobados. Rollback save/load con configuración archivada y `--no-build`: imagen siguiente `sha256:fe71e65f0be88fd4ebe39d7245073e9a757666092fa89edc94763133ff5261c2` → original `sha256:cc1cc8e07a5ad1645ba0dfd42eae42b989400c1fbca0eb8fa4127e563a6506f4`, linux/arm64, contenido idéntico.
 - Limpieza verificada: no quedan contenedores ni redes del proyecto smoke. La unidad legada conserva active/running/enabled y MainPID 1726631; no se modificaron su docroot ni los cinco originales del checkout.
 - Límites: sin ensayo amd64, reboot del host ni corte/reversión real de systemd; estos últimos requieren ventana autorizada. Los pools IPv4 del daemon requieren la configuración de red adicional documentada en este host. QA independiente en t_0eb9d683 revisará también el gate 58144c1 y los commits previos de especificación.
+- Implementación confirmada en `d3d64e9f8427fdd33a24e05f85d8de9d0b817a39`, rama `programador/t_d76dc2c6`, merge-base con main `21a497ca26e019d241a2a2bab4bec1aa9bbbfc9f`. Hook ejecutado y trailer único `OpenSpec-Change: docker-compose-deployment` comprobado; worktree limpio tras el commit. Este cierre documental se confirma por separado y la transición de Kanban entrega los hashes exactos a la QA hija.
