@@ -39,9 +39,9 @@ Protegido: cualquier archivo salvo .md/.txt y openspec/. Renombres y borrados cu
 
 ## Ramas y entrega
 
-main conserva la importación inicial; setup/repository-governance contiene el gate pendiente de revisión, sin auto-merge. La implementación Docker usará programador/t_d76dc2c6 en .worktrees/t_d76dc2c6, basada en el commit del gate. Esto no equivale a modificar la asignación del tablero: al reactivar la tarjeta actualizar su workspace/rama a esos valores.
-
-No implementar en main; no push, merge, rebase ni descarte de cambios. Entregar a QA hashes, merge-base, pruebas y worktree limpio. Mantener la infraestructura de gobierno y Docker como commits separados. QA debe revisar ambos si la infraestructura aún no fue integrada.
+1. **Implementación.** Trabajar en una rama y un worktree de la tarea, nunca directamente en `main`. El implementador no integra a `main` ni hace push, rebase o descarte de cambios. Entregar a QA el SHA exacto del candidato, la base común con `main`, los resultados de las pruebas y un worktree limpio. Mantener la infraestructura de gobierno y Docker como commits separados; si ambos están pendientes de integración, QA revisa ambos.
+2. **Revisión e integración.** QA revisa en solo lectura el candidato exacto. Tras su aprobación, el integrador autorizado incorpora a `main` los cambios revisados. Preferir `git merge --ff-only` si `main` es ancestro del candidato; si la integración exige resolver conflictos, revisar y verificar el resultado antes de actualizar `main`. La integración local no autoriza un push ni un despliegue.
+3. **Cierre.** No marcar una entrega de código como `Done` hasta comprobar que los cambios revisados están en `main` y que las pruebas aplicables pasan en la versión integrada. Registrar en la tarjeta el SHA revisado, el SHA final de `main` y las comprobaciones realizadas. Si falta integración o verificación, mantener la entrega en revisión o bloqueada e indicar qué falta.
 
 ## Seguridad operativa
 
