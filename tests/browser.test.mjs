@@ -301,6 +301,75 @@ test('niveles exactos, respuesta con tildes normalizadas y diseño móvil sin de
   } finally { await context.close(); }
 });
 
+test('15 aciertos únicos, error y salto elegibles, agotamiento y regreso al nivel', async () => {
+  const { context, page, errors, external } = await openPage({ reducedMotion: 'reduce' });
+  try {
+    await page.addInitScript(() => { Math.random = () => 0; });
+    await ready(page);
+    const first = await activeStreet(page);
+    await page.locator('#answer').fill('incorrecta');
+    await page.locator('#submit').click();
+    assert.equal((await activeStreet(page)).nombre, first.nombre);
+    await page.locator('#skip').click();
+    await page.locator('#next').click();
+    await page.locator('#skip').click();
+    await page.locator('#next').click();
+    assert.equal((await activeStreet(page)).nombre, first.nombre);
+    const seen = new Set();
+    for (let i = 0; i < 15; i++) {
+      const street = await activeStreet(page);
+      const id = [...street.osm_way_ids].sort((a, b) => a - b).join(',');
+      assert.equal(seen.has(id), false);
+      seen.add(id);
+      await page.locator('#answer').fill(street.nombre);
+      await page.locator('#submit').click();
+      await page.locator('#answer-form').dispatchEvent('submit');
+      assert.equal(await page.locator('#score').innerText(), String((i === 0 ? 1 : i) * 10));
+      if (i === 0) {
+        await page.locator('#level').selectOption('2');
+        const medium = await activeStreet(page);
+        await page.locator('#answer').fill(medium.nombre);
+        await page.locator('#submit').click();
+        await page.locator('#level').selectOption('1');
+      } else if (i < 14) {
+        await page.locator('#next').click();
+      }
+    }
+    assert.equal(await page.locator('#level').inputValue(), '1');
+    assert.ok(await page.locator('#next').isHidden());
+    assert.ok(await page.locator('#answer').isDisabled());
+    await page.locator('#level').selectOption('2');
+    assert.equal((await activeStreet(page)).nivel, 2);
+    await page.locator('#level').selectOption('1');
+    assert.equal(await page.locator('path.active').count(), 0);
+    assert.ok(await page.locator('#answer').isDisabled());
+    assert.ok(await page.locator('#next').isHidden());
+    assert.match(await page.locator('#feedback').innerText(), /completado/i);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(external, []);
+  } finally { await context.close(); }
+});
+
+test('IDs OSM inválidos o entidades duplicadas se rechazan antes de jugar', async () => {
+  const { context, page } = await openPage();
+  try {
+    for (const ids of [undefined, [], [0], [-1], [1.5], ['123'], [Number.MAX_SAFE_INTEGER + 1]]) {
+      const invalid = data.map((street, index) => index === 0 ? { ...street, osm_way_ids: ids } : street);
+      await page.route('**/arrecifes_calles.json', route => route.fulfill({ json: invalid }));
+      await page.goto(origin);
+      await page.locator('#retry:visible').waitFor();
+      assert.match(await page.locator('#feedback').innerText(), /Formato de calles inválido/);
+      assert.ok(await page.locator('#answer').isDisabled());
+      await page.unroute('**/arrecifes_calles.json');
+    }
+    await page.route('**/arrecifes_calles.json', route => route.fulfill({ json: [...data, { ...data[0] }] }));
+    await page.goto(origin);
+    await page.locator('#retry:visible').waitFor();
+    assert.equal(await page.locator('#map path').count(), 0);
+    assert.match(await page.locator('#feedback').innerText(), /Formato de calles inválido/);
+  } finally { await context.close(); }
+});
+
 test('zoom suave normal y movimiento reducido inmediato', async () => {
   const { context, page } = await openPage({ viewport: { width: 1280, height: 900 }, reducedMotion: 'no-preference' });
   try {

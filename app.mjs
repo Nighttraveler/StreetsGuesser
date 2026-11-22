@@ -1,4 +1,4 @@
-import { selectStreet, matchesAnswer, initialState, updateState, hintFor, isMapDrag, panView } from './game.mjs';
+import { selectStreet, matchesAnswer, initialState, updateState, hintFor, isMapDrag, panView, streetId, getProgress } from './game.mjs';
 
 const byId = id => document.getElementById(id);
 const map = byId('map');
@@ -62,13 +62,15 @@ function message(text, kind = '') {
   feedback.className = `feedback ${kind}`;
 }
 function renderState() {
+  const completed = getProgress(streets, level.value, state).completed;
+  const unavailable = !current || state.resolved || completed;
   byId('score').textContent = state.score;
   byId('streak').textContent = state.streak;
-  answer.disabled = state.resolved;
-  byId('submit').disabled = state.resolved;
-  byId('hint').disabled = state.resolved || state.hinted;
-  byId('skip').disabled = state.resolved;
-  byId('next').hidden = !state.resolved;
+  answer.disabled = unavailable;
+  byId('submit').disabled = unavailable;
+  byId('hint').disabled = unavailable || state.hinted;
+  byId('skip').disabled = unavailable;
+  byId('next').hidden = !state.resolved || completed || !current;
 }
 function setView(box) {
   view = box;
@@ -126,9 +128,20 @@ function drawMap() {
 }
 function nextRound() {
   const previous = current;
-  current = selectStreet(streets, level.value, previous);
+  current = selectStreet(streets, level.value, previous, Math.random, state.solvedByLevel[level.value]);
   state = updateState(state, 'next');
   groups.forEach(group => group.querySelectorAll('path').forEach(path => path.classList.remove('active')));
+  answer.value = '';
+  byId('hint-text').textContent = '';
+  const count = getProgress(streets, level.value, state).total;
+  byId('level-note').textContent = `${count} calles · ${['Avenidas y vías principales', 'Conexiones intermedias', 'Calles residenciales'][Number(level.value) - 1]}`;
+  if (!current) {
+    targetView = fullView;
+    zoomTo(fullView);
+    message('Nivel completado. Podés elegir otra dificultad.', 'success');
+    renderState();
+    return;
+  }
   const index = streets.indexOf(current);
   const group = groups[index];
   group.querySelectorAll('path').forEach(path => path.classList.add('active'));
@@ -136,10 +149,6 @@ function nextRound() {
   map.append(group);
   targetView = bounds(projected[index].flat(), Math.min(fullView[2], fullView[3]) / 6);
   zoomTo(targetView);
-  answer.value = '';
-  byId('hint-text').textContent = '';
-  const count = streets.filter(s => s.nivel === Number(level.value)).length;
-  byId('level-note').textContent = `${count} calles · ${['Avenidas y vías principales', 'Conexiones intermedias', 'Calles residenciales'][Number(level.value) - 1]}`;
   message('Mirá la calle resaltada y probá con su nombre.');
   renderState();
 }
@@ -147,11 +156,16 @@ byId('answer-form').addEventListener('submit', event => {
   event.preventDefault();
   if (!current || state.resolved || !answer.value.trim()) return;
   const correct = matchesAnswer(answer.value, current);
-  state = updateState(state, correct ? 'correct' : 'wrong');
+  state = updateState(state, correct ? 'correct' : 'wrong', current);
   renderState();
   if (correct) {
     message(`¡Bien! Es ${current.nombre}. +${state.hinted ? 5 : 10} puntos.`, 'success');
-    byId('next').focus();
+    if (getProgress(streets, level.value, state).completed) {
+      message(`¡Bien! Es ${current.nombre}. +${state.hinted ? 5 : 10} puntos. Nivel completado.`, 'success');
+      level.focus();
+    } else {
+      byId('next').focus();
+    }
   } else {
     message('Todavía no. Probá otra vez o pedí una pista. Tu racha vuelve a cero.', 'error');
     answer.select();
@@ -176,9 +190,9 @@ byId('next').addEventListener('click', () => {
   answer.focus();
 });
 level.addEventListener('change', () => {
-  state = initialState();
+  state = initialState(state.solvedByLevel);
   nextRound();
-  message('Nuevo nivel: puntos y racha reiniciados. ¿Qué calle está resaltada?');
+  if (current) message('Nuevo nivel: puntos y racha reiniciados. ¿Qué calle está resaltada?');
 });
 byId('overview').addEventListener('click', () => zoomTo(fullView));
 byId('locate').addEventListener('click', () => zoomTo(targetView));
@@ -193,9 +207,12 @@ byId('zoom-out').addEventListener('click', () => changeZoom(1 / .75));
 function validDataset(data) {
   return Array.isArray(data) && data.length > 0 && [1, 2, 3].every(n => data.some(s => s.nivel === n)) && data.every(s =>
     typeof s.nombre === 'string' && s.nombre.trim() && [1, 2, 3].includes(s.nivel) &&
+    Array.isArray(s.osm_way_ids) && s.osm_way_ids.length > 0 &&
+    s.osm_way_ids.every(id => Number.isSafeInteger(id) && id > 0) &&
     Array.isArray(s.segmentos) && s.segmentos.length && s.segmentos.every(segment =>
       Array.isArray(segment.coordenadas) && segment.coordenadas.length >= 2 && segment.coordenadas.every(p =>
-        Array.isArray(p) && p.length === 2 && p.every(Number.isFinite) && Math.abs(p[0]) <= 180 && Math.abs(p[1]) <= 90)));
+        Array.isArray(p) && p.length === 2 && p.every(Number.isFinite) && Math.abs(p[0]) <= 180 && Math.abs(p[1]) <= 90))) &&
+    new Set(data.map(streetId)).size === data.length;
 }
 async function load() {
   byId('retry').hidden = true;

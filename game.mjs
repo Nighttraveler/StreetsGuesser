@@ -23,26 +23,49 @@ export function matchesAnswer(answer, street) {
     && normalized === 'merlassino';
 }
 
-export function selectStreet(streets, level, previous = null, random = Math.random) {
-  const pool = streets.filter(street => street.nivel === Number(level));
-  if (!pool.length) throw new Error('No hay calles para este nivel.');
-  const alternatives = pool.filter(street => street !== previous);
+export function streetId(street) {
+  return [...new Set(street.osm_way_ids)].sort((a, b) => a - b).join(',');
+}
+
+export function getProgress(streets, level, state) {
+  const ids = new Set(streets.filter(street => street.nivel === Number(level)).map(streetId));
+  const solved = new Set(state.solvedByLevel[level] ?? []);
+  const correct = [...ids].filter(id => solved.has(id)).length;
+  return { correct, total: ids.size, completed: ids.size > 0 && correct === ids.size };
+}
+
+export function selectStreet(streets, level, previous = null, random = Math.random, solvedIds = []) {
+  const levelStreets = streets.filter(street => street.nivel === Number(level));
+  if (!levelStreets.length) throw new Error('No hay calles para este nivel.');
+  const solved = new Set(solvedIds);
+  const pool = levelStreets.filter(street => !solved.has(streetId(street)));
+  if (!pool.length) return null;
+  const alternatives = pool.filter(street => !previous || streetId(street) !== streetId(previous));
   const choices = alternatives.length ? alternatives : pool;
   return choices[Math.min(choices.length - 1, Math.max(0, Math.floor(random() * choices.length)))];
 }
 
-export function initialState() {
-  return { score: 0, streak: 0, hinted: false, resolved: false };
+export function initialState(solvedByLevel = {}) {
+  return { score: 0, streak: 0, hinted: false, resolved: false, solvedByLevel };
 }
 
-export function updateState(state, event) {
+export function updateState(state, event, street = null) {
   if (event === 'next') return { ...state, hinted: false, resolved: false };
   if (state.resolved) return state;
   switch (event) {
     case 'hint': return { ...state, hinted: true };
     case 'wrong': return { ...state, streak: 0 };
     case 'skip': return { ...state, streak: 0, resolved: true };
-    case 'correct': return { ...state, score: state.score + (state.hinted ? 5 : 10), streak: state.streak + 1, resolved: true };
+    case 'correct': {
+      let solvedByLevel = state.solvedByLevel;
+      if (street) {
+        const id = streetId(street);
+        const solved = solvedByLevel[street.nivel] ?? [];
+        if (solved.includes(id)) return { ...state, resolved: true };
+        solvedByLevel = { ...solvedByLevel, [street.nivel]: [...solved, id] };
+      }
+      return { ...state, solvedByLevel, score: state.score + (state.hinted ? 5 : 10), streak: state.streak + 1, resolved: true };
+    }
     default: return state;
   }
 }

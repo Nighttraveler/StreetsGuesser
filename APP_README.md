@@ -43,10 +43,13 @@ El nombre canónico es `Avenida Carlos Merlassino`. Se aceptan explícitamente `
 - Nivel 1 / Fácil: 15 calles principales; nivel 2 / Medio: 13 conexiones intermedias; nivel 3 / Difícil: 145 calles residenciales. Selección exacta, no acumulativa, uniforme entre opciones salvo exclusión de la calle anterior para evitar repetición inmediata.
 - La calle seleccionada resalta todos sus tramos, incluidos los desconectados. Zoom suave al conjunto, inmediato con preferencia de movimiento reducido. Botones +, −, Vista general y Ver calle disponibles sin gestos.
 - Para explorar, mantener presionado el botón principal del mouse sobre el mapa y arrastrar al menos 5 píxeles. El contenido sigue al puntero sin cambiar el zoom ni la ronda; un clic simple no desplaza ni cambia la partida. Soltar (incluso fuera del mapa) o perder el foco termina el gesto. Los controles no inician arrastre y Ver calle recupera el encuadre original. Se conservan los límites de zoom; no existen límites de posición de cámara. No se agregan gestos táctiles ni de rueda.
+- Nivel 1 / Fácil: 15 calles principales; nivel 2 / Medio: 13 conexiones intermedias; nivel 3 / Difícil: 145 calles residenciales. Selección exacta, no acumulativa, entre calles aún no acertadas; evita repetición inmediata cuando hay alternativa. Errores, pistas y saltos no retiran calles.
+- La calle seleccionada resalta todos sus tramos, incluidos los desconectados. Zoom suave al conjunto, inmediato con preferencia de movimiento reducido. Botones +, −, Vista general y Ver calle disponibles sin gestos.
+- Para explorar, mantener presionado el botón principal del mouse sobre el mapa y arrastrar al menos 5 píxeles. El contenido sigue al puntero sin cambiar el zoom ni la ronda; un clic simple no desplaza ni cambia la partida. Soltar (incluso fuera del mapa) o perder el foco termina el gesto. Los controles no inician arrastre y Ver calle recupera el encuadre original. Se conservan los límites de zoom; no existen límites de posición de cámara. No se agregan gestos táctiles ni de rueda.
 - Ingresar respuesta y Enter o Comprobar. Se ignoran caja, tildes y prefijos iniciales Av./Av/Avenida/Calle/Dr./Dr/Gral./Gral; no se aceptan subcadenas arbitrarias.
 - Acierto: +10, racha +1. Pista: letra inicial y palabras del nombre sin prefijos; acierto con pista +5. Error: puntos conservados, racha cero, se puede reintentar.
 - Saltar / Ver respuesta: conserva puntos y reinicia racha. La respuesta queda legible sin temporizador hasta pulsar Siguiente calle. Un acierto también espera Siguiente y no permite sumar dos veces.
-- Cambio de nivel reinicia puntos y racha. No hay persistencia de marcadores entre recargas (juego de práctica local).
+- Cambio de nivel reinicia puntos y racha, pero conserva los aciertos únicos propios de cada dificultad durante la partida. Al agotar una dificultad no se selecciona otra calle ni se cambia de nivel automáticamente. No hay persistencia entre recargas (juego de práctica local).
 - Etiquetas de formulario, mensajes live, foco visible, controles de al menos 44px de alto, input de 16px para móvil y diseño en una columna en pantallas pequeñas.
 
 ## Pruebas reproducibles
@@ -93,6 +96,18 @@ Verificación de esta actualización:
 - Fallos de preparación resueltos: ejecutar directamente la suite Compose sin levantar servicio dio conexión rechazada; el runner completo posterior pasó. La primera prueba de escala usaba una posición anterior al cambio de aspecto del SVG: se recalculó el centro antes del gesto, conservando la tolerancia numérica original.
 
 Sin migraciones, dependencias ni cambios GIS; mismo conjunto de cinco estáticos. No probado en Firefox/Safari ni dispositivos físicos. Revisión independiente: `t_548bb6b5`. Integración a main y despliegue no se realizan en esta fase; hashes finales y estado limpio se entregan en Kanban.
+
+### Contrato de progreso (t_25ef22af)
+
+OpenSpec `exclude-solved-streets` amplía las reglas históricas anteriores sin modificar GIS. `game.mjs` exporta:
+
+- `streetId(street)`: identidad de entidad derivada de `osm_way_ids` únicos ordenados numéricamente y unidos por coma; no depende de nombre, índice o instancia. Estable dentro del dataset, no entre futuras reediciones de OSM. La carga rechaza IDs vacíos, inválidos o entidades con identidad duplicada.
+- `initialState(solvedByLevel = {})`: estado con marcadores y objeto de arrays de IDs por nivel. Omitir argumento crea partida nueva. Pasar `state.solvedByLevel` conserva progreso al reiniciar marcadores.
+- `updateState(state, event, street = null)`: en `correct` con contexto agrega el ID una sola vez al nivel de la calle, sin mutar el estado previo; duplicados tampoco suman puntos. El contexto opcional conserva el uso histórico de puntuación aislada; el controlador siempre pasa la calle al responder.
+- `getProgress(streets, level, state)`: `{ correct, total, completed }`, IDs únicos de ese nivel; un nivel inexistente retorna 0/0 con `completed: false`.
+- `selectStreet(streets, level, previous = null, random = Math.random, solvedIds = [])`: pasar `state.solvedByLevel[level]` como quinto argumento. Retorna `null` al agotar un nivel existente; nivel inexistente sigue lanzando error. Última pendiente puede repetirse si antes fue saltada.
+
+La UI mínima oculta Siguiente y deshabilita respuestas al completar; al regresar a un nivel agotado muestra completado sin calle activa. El contador visible y la oferta explícita de siguiente dificultad pertenecen a t_89aabed0; esta tarjeta no los implementa. Su rama debe partir del candidato entregado, y QA final t_d8830d6a revisará la cadena completa antes de integrar. No hay migraciones ni despliegue.
 
 Diseño previo: `/home/fer/projects/juego-calles-arrecifes/APP_SPEC.md`.
 Nuevos: APP_SPEC.md, index.html, styles.css, game.mjs, app.mjs, package.json, package-lock.json, tests/game.test.mjs, tests/browser.test.mjs, APP_README.md, APP_TEST_RESULTS.txt y capturas en test-results/. node_modules es instalación local de tooling, no entregable publicable.

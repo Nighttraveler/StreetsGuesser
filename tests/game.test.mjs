@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { normalizeName, matchesAnswer, selectStreet, initialState, updateState, hintFor, isMapDrag, panView } from '../game.mjs';
+import { normalizeName, matchesAnswer, selectStreet, initialState, updateState, hintFor, isMapDrag, panView, streetId, getProgress } from '../game.mjs';
 const streets = JSON.parse(await readFile(new URL('../arrecifes_calles.json', import.meta.url)));
 
 test('umbral euclidiano de arrastre en píxeles CSS, inclusive y simétrico', () => {
@@ -53,7 +53,7 @@ test('selección exacta por nivel y extremos aleatorios con dataset real', () =>
 test('puntos, racha, pista, error, salto y doble envío', () => {
   let state = initialState();
   state = updateState(state, 'correct');
-  assert.deepEqual(state, { score: 10, streak: 1, hinted: false, resolved: true });
+  assert.deepEqual(state, { score: 10, streak: 1, hinted: false, resolved: true, solvedByLevel: {} });
   assert.equal(updateState(state, 'correct'), state);
   assert.equal(updateState(state, 'skip'), state);
   state = updateState(state, 'next');
@@ -73,9 +73,77 @@ test('puntos, racha, pista, error, salto y doble envío', () => {
   assert.equal(state.score, 25);
   assert.equal(state.streak, 0);
   assert.equal(state.resolved, true);
-  assert.deepEqual(initialState(), { score: 0, streak: 0, hinted: false, resolved: false });
+  assert.deepEqual(initialState(), { score: 0, streak: 0, hinted: false, resolved: false, solvedByLevel: {} });
 });
 test('pista usa letra y palabras sin prefijos', () => {
   assert.equal(hintFor({ nombre: 'Avenida Carlos Merlassino' }), 'Empieza con «C» · 2 palabras (sin prefijos).');
   assert.match(hintFor({ nombre: 'Avenida Belgrano' }), /«B» · 1 palabra /);
+});
+
+test('identidad OSM estable, independiente de nombre, orden e instancia', () => {
+  const street = streets[0];
+  const clone = { ...street, nombre: 'Otro nombre', osm_way_ids: [...street.osm_way_ids].reverse() };
+  assert.equal(streetId(street), streetId(clone));
+  assert.equal(streetId({ osm_way_ids: [2, 10, 2] }), '2,10');
+  assert.notEqual(streetId(streets[1]), streetId(street));
+  const alternative = streets.find(s => s.nivel === street.nivel && s !== street);
+  assert.equal(selectStreet([street, alternative], street.nivel, clone, () => 0), alternative);
+});
+
+test('progreso único de 0 a total y agotamiento para cada dificultad real', () => {
+  for (const [level, total] of [[1, 15], [2, 13], [3, 145]]) {
+    let state = initialState();
+    const seen = new Set();
+    assert.deepEqual(getProgress(streets, String(level), state), { correct: 0, total, completed: false });
+    for (let i = 0; i < total; i++) {
+      const current = selectStreet(streets, level, null, () => .5, state.solvedByLevel[level]);
+      assert.ok(current);
+      assert.equal(seen.has(streetId(current)), false);
+      seen.add(streetId(current));
+      const before = state;
+      state = updateState(state, 'correct', current);
+      assert.equal(getProgress(streets, level, before).correct, i);
+      assert.deepEqual(getProgress(streets, level, state), { correct: i + 1, total, completed: i + 1 === total });
+      assert.equal(updateState(state, 'correct', current), state);
+      const next = updateState(state, 'next');
+      const duplicate = updateState(next, 'correct', { ...current });
+      assert.equal(duplicate.score, state.score);
+      assert.equal(getProgress(streets, level, duplicate).correct, i + 1);
+      state = next;
+    }
+    assert.equal(selectStreet(streets, level, null, () => 0, state.solvedByLevel[level]), null);
+    assert.equal(state.score, total * 10);
+  }
+});
+
+test('errores, pistas y saltos no retiran calles; última pendiente sigue elegible', () => {
+  const street = streets.find(s => s.nivel === 1);
+  let state = initialState();
+  for (const event of ['wrong', 'hint', 'skip']) {
+    state = updateState(state, event, street);
+    assert.deepEqual(getProgress([street], 1, state), { correct: 0, total: 1, completed: false });
+    assert.equal(selectStreet([street], 1, { ...street }, () => 0, state.solvedByLevel[1]), street);
+  }
+  state = updateState(state, 'next');
+  state = updateState(state, 'hint', street);
+  state = updateState(state, 'correct', street);
+  assert.equal(state.score, 5);
+  assert.deepEqual(getProgress([street], 1, state), { correct: 1, total: 1, completed: true });
+});
+
+test('progreso separado por dificultad, reinicio de marcadores y partida nueva', () => {
+  const easy = streets.find(s => s.nivel === 1);
+  const medium = streets.find(s => s.nivel === 2);
+  let state = updateState(initialState(), 'correct', easy);
+  state = initialState(state.solvedByLevel);
+  assert.equal(state.score, 0);
+  assert.equal(state.streak, 0);
+  assert.equal(getProgress(streets, 1, state).correct, 1);
+  assert.equal(getProgress(streets, 2, state).correct, 0);
+  state = updateState(state, 'correct', medium);
+  assert.equal(getProgress(streets, 1, state).correct, 1);
+  assert.equal(getProgress(streets, 2, state).correct, 1);
+  assert.equal(getProgress(streets, 1, initialState()).correct, 0);
+  assert.deepEqual(getProgress(streets, 4, state), { correct: 0, total: 0, completed: false });
+  assert.deepEqual(getProgress([easy, { ...easy }], 1, state), { correct: 1, total: 1, completed: true });
 });
