@@ -7,7 +7,7 @@ services:
     image: ${ARRECIFES_IMAGE:-arrecifes-de-memoria:local}
     pull_policy: never
     ports:
-      - "${BIND_IP:-127.0.0.1}:${HTTP_PORT:-8090}:8080/tcp"
+      - "${BIND_IP:-0.0.0.0}:${HTTP_PORT:-8090}:8080/tcp"
     restart: unless-stopped
     read_only: true
     tmpfs:
@@ -26,7 +26,21 @@ services:
       timeout: 3s
       start_period: 5s
       retries: 3
-
+    labels:
+      traefik.enable: 'true'
+      traefik.docker.network: proxy
+      traefik.http.services.arremap.loadbalancer.server.port: '8080'
+      traefik.http.routers.arremap.rule: Host(`arremap.home.arpa`)
+      traefik.http.routers.arremap.entrypoints: web
+      traefik.http.routers.arremap.service: arremap
+      traefik.http.routers.arremap-secure.rule: Host(`arremap.home.arpa`)
+      traefik.http.routers.arremap-secure.entrypoints: websecure
+      traefik.http.routers.arremap-secure.service: arremap
+      traefik.http.routers.arremap-secure.tls: 'true'
+    networks:
+      - proxy 
 networks:
+  proxy:
+    external: true
   default:
     driver: bridge
