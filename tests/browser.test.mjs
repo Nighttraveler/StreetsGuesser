@@ -307,10 +307,16 @@ test('15 aciertos únicos, error y salto elegibles, agotamiento y regreso al niv
     await page.addInitScript(() => { Math.random = () => 0; });
     await ready(page);
     const first = await activeStreet(page);
+    assert.equal(await page.locator('#progress').innerText(), '0/15');
+    assert.ok(await page.locator('#advance').isHidden());
     await page.locator('#answer').fill('incorrecta');
     await page.locator('#submit').click();
     assert.equal((await activeStreet(page)).nombre, first.nombre);
+    assert.equal(await page.locator('#progress').innerText(), '0/15');
+    await page.locator('#hint').click();
+    assert.equal(await page.locator('#progress').innerText(), '0/15');
     await page.locator('#skip').click();
+    assert.equal(await page.locator('#progress').innerText(), '0/15');
     await page.locator('#next').click();
     await page.locator('#skip').click();
     await page.locator('#next').click();
@@ -324,13 +330,18 @@ test('15 aciertos únicos, error y salto elegibles, agotamiento y regreso al niv
       await page.locator('#answer').fill(street.nombre);
       await page.locator('#submit').click();
       await page.locator('#answer-form').dispatchEvent('submit');
+      assert.equal(await page.locator('#progress').innerText(), `${i + 1}/15`);
+      assert.equal(await page.locator('#advance').isVisible(), i === 14);
       assert.equal(await page.locator('#score').innerText(), String((i === 0 ? 1 : i) * 10));
       if (i === 0) {
         await page.locator('#level').selectOption('2');
+        assert.equal(await page.locator('#progress').innerText(), '0/13');
         const medium = await activeStreet(page);
         await page.locator('#answer').fill(medium.nombre);
         await page.locator('#submit').click();
+        assert.equal(await page.locator('#progress').innerText(), '1/13');
         await page.locator('#level').selectOption('1');
+        assert.equal(await page.locator('#progress').innerText(), '1/15');
       } else if (i < 14) {
         await page.locator('#next').click();
       }
@@ -338,13 +349,70 @@ test('15 aciertos únicos, error y salto elegibles, agotamiento y regreso al niv
     assert.equal(await page.locator('#level').inputValue(), '1');
     assert.ok(await page.locator('#next').isHidden());
     assert.ok(await page.locator('#answer').isDisabled());
-    await page.locator('#level').selectOption('2');
+    assert.match(await page.locator('#feedback').innerText(), /Nivel completado/);
+    assert.match(await page.locator('#advance').innerText(), /Medio/);
+    assert.equal(await page.locator('#advance').evaluate(el => el === document.activeElement), true);
+    await page.waitForTimeout(250);
+    assert.equal(await page.locator('#level').inputValue(), '1');
+    assert.equal(await page.locator('#progress').innerText(), '15/15');
+    await page.locator('#advance').press('Enter');
+    assert.equal(await page.locator('#level').inputValue(), '2');
+    assert.equal(await page.locator('#progress').innerText(), '1/13');
+    assert.equal(await page.locator('#score').innerText(), '0');
+    assert.equal(await page.locator('#streak').innerText(), '0');
+    assert.ok(await page.locator('#advance').isHidden());
+    assert.equal(await page.locator('#answer').evaluate(el => el === document.activeElement), true);
     assert.equal((await activeStreet(page)).nivel, 2);
     await page.locator('#level').selectOption('1');
     assert.equal(await page.locator('path.active').count(), 0);
     assert.ok(await page.locator('#answer').isDisabled());
     assert.ok(await page.locator('#next').isHidden());
     assert.match(await page.locator('#feedback').innerText(), /completado/i);
+    assert.equal(await page.locator('#progress').innerText(), '15/15');
+    assert.ok(await page.locator('#advance').isVisible());
+    assert.deepEqual(errors, []);
+    assert.deepEqual(external, []);
+  } finally { await context.close(); }
+});
+
+test('avance Medio a Difícil y máximo completo sin oferta inválida en móvil', async () => {
+  const { context, page, errors, external } = await openPage({ viewport: { width: 375, height: 812 }, reducedMotion: 'reduce' });
+  try {
+    await ready(page);
+    await page.locator('#level').selectOption('2');
+    for (const [level, total] of [[2, 13], [3, 145]]) {
+      assert.equal(await page.locator('#progress').innerText(), `0/${total}`);
+      for (let i = 0; i < total; i++) {
+        const street = await activeStreet(page);
+        assert.equal(street.nivel, level);
+        await page.locator('#answer').fill(street.nombre);
+        await page.locator('#submit').click();
+        assert.equal(await page.locator('#progress').innerText(), `${i + 1}/${total}`);
+        if (i + 1 < total) await page.locator('#next').click();
+      }
+      assert.equal(await page.locator('#level').inputValue(), String(level));
+      assert.match(await page.locator('#feedback').innerText(), /Nivel completado/);
+      assert.ok(await page.locator('#next').isHidden());
+      if (level === 2) {
+        assert.match(await page.locator('#advance').innerText(), /Difícil/);
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        await page.screenshot({ path: new URL('test-results/completed-mobile.png', root).pathname, fullPage: true });
+        await page.locator('#advance').click();
+      }
+    }
+    assert.ok(await page.locator('#advance').isHidden());
+    assert.equal(await page.locator('#level').evaluate(el => el === document.activeElement), true);
+    await page.locator('#advance').dispatchEvent('click');
+    assert.equal(await page.locator('#level').inputValue(), '3');
+    assert.equal(await page.locator('#progress').innerText(), '145/145');
+    await page.locator('#level').selectOption('1');
+    await page.locator('#advance').dispatchEvent('click');
+    assert.equal(await page.locator('#level').inputValue(), '1');
+    assert.equal(await page.locator('#progress').innerText(), '0/15');
+    await page.locator('#level').selectOption('3');
+    assert.equal(await page.locator('#progress').innerText(), '145/145');
+    assert.ok(await page.locator('#advance').isHidden());
+    assert.equal(await page.locator('path.active').count(), 0);
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
   } finally { await context.close(); }

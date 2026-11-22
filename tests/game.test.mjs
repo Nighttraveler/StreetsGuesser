@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { normalizeName, matchesAnswer, selectStreet, initialState, updateState, hintFor, isMapDrag, panView, streetId, getProgress } from '../game.mjs';
+import { normalizeName, matchesAnswer, selectStreet, initialState, updateState, hintFor, isMapDrag, panView, streetId, getProgress, nextLevel } from '../game.mjs';
 const streets = JSON.parse(await readFile(new URL('../arrecifes_calles.json', import.meta.url)));
 
 test('umbral euclidiano de arrastre en píxeles CSS, inclusive y simétrico', () => {
@@ -16,6 +16,14 @@ test('desplazamiento SVG usa la parte lineal de la matriz y preserva zoom sin mu
   assert.deepEqual(panView(view, 12, -8, { a: 2, b: 0, c: 0, d: 2, e: 999, f: 999 }), [-14, 36, 300, 100]);
   assert.deepEqual(panView(view, -12, 8, { a: .5, b: 1, c: -1, d: .5 }), [24, 28, 300, 100]);
   assert.deepEqual(view, [10, 20, 300, 100]);
+});
+test('siguiente dificultad respeta configuración, sin envolver ni inventar niveles', () => {
+  assert.equal(nextLevel('1', ['1', '2', '3']), '2');
+  assert.equal(nextLevel('2', ['1', '2', '3']), '3');
+  assert.equal(nextLevel('3', ['1', '2', '3']), null);
+  assert.equal(nextLevel('1', ['1', '3']), '3');
+  assert.equal(nextLevel('4', ['1', '2', '3']), null);
+  assert.equal(nextLevel('1', []), null);
 });
 
 test('normaliza mayúsculas, tildes, espacios y todos los prefijos pedidos', () => {

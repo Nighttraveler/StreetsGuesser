@@ -27,6 +27,11 @@ export function streetId(street) {
   return [...new Set(street.osm_way_ids)].sort((a, b) => a - b).join(',');
 }
 
+export function nextLevel(level, configuredLevels) {
+  const index = configuredLevels.indexOf(level);
+  return index < 0 ? null : configuredLevels[index + 1] ?? null;
+}
+
 export function getProgress(streets, level, state) {
   const ids = new Set(streets.filter(street => street.nivel === Number(level)).map(streetId));
   const solved = new Set(state.solvedByLevel[level] ?? []);

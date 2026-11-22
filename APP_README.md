@@ -107,7 +107,29 @@ OpenSpec `exclude-solved-streets` amplía las reglas históricas anteriores sin 
 - `getProgress(streets, level, state)`: `{ correct, total, completed }`, IDs únicos de ese nivel; un nivel inexistente retorna 0/0 con `completed: false`.
 - `selectStreet(streets, level, previous = null, random = Math.random, solvedIds = [])`: pasar `state.solvedByLevel[level]` como quinto argumento. Retorna `null` al agotar un nivel existente; nivel inexistente sigue lanzando error. Última pendiente puede repetirse si antes fue saltada.
 
-La UI mínima oculta Siguiente y deshabilita respuestas al completar; al regresar a un nivel agotado muestra completado sin calle activa. El contador visible y la oferta explícita de siguiente dificultad pertenecen a t_89aabed0; esta tarjeta no los implementa. Su rama debe partir del candidato entregado, y QA final t_d8830d6a revisará la cadena completa antes de integrar. No hay migraciones ni despliegue.
+La UI oculta Siguiente y deshabilita respuestas al completar; al regresar a un nivel agotado muestra completado sin calle activa. QA final t_d8830d6a revisará la cadena completa antes de integrar. No hay migraciones ni despliegue.
+
+### Contador y ascenso voluntario (t_89aabed0)
+
+OpenSpec `show-progress-and-level-advance`, especificado y comprometido antes de implementar sobre el candidato `2cee184`, incorpora:
+
+- Contador visible `acertadas/total` de la dificultad activa: 0/15 a 15/15, 0/13 a 13/13 y 0/145 a 145/145. Usa `getProgress`, no puntos ni racha. Región live polite/atomic, oculta durante carga inicial.
+- Al completar mantiene la última respuesta, el total completo y el mensaje de finalización. No selecciona otra calle ni cambia automáticamente. El botón `Subir a 2 · Medio` o `Subir a 3 · Difícil` permite aceptar explícitamente (también con Enter); ignorarlo deja el nivel intacto. El selector sigue disponible.
+- Aceptar restaura el progreso propio del destino (por ejemplo, 1/13 si ya hubo un acierto medio), reinicia puntos/racha y enfoca respuesta. Regresar a un nivel agotado conserva contador completo y oferta válida. En Difícil completo no hay oferta inválida; foco al selector.
+- `nextLevel(level, configuredLevels)` en game.mjs devuelve el siguiente valor de la lista ordenada o `null` al final/nivel desconocido. La UI pasa los valores string de opciones habilitadas; no asume niveles consecutivos ni vuelve al primero.
+
+Pruebas actuales, desde la raíz del worktree con Node 22+, Chromium y uv:
+
+    npm ci --ignore-scripts --no-audit --no-fund
+    npm test
+    npm run test:functional
+    node --test --experimental-test-coverage tests/game.test.mjs
+    uv run --offline test_gis.py
+    make openspec-validate CHANGE=show-progress-and-level-advance
+    openspec validate --all --strict --no-interactive
+    make openspec-guard-test
+
+Resultado de implementación: 10 unitarias, 7 Chromium y 11 GIS pasan. Las funcionales recorren todos los aciertos de los tres niveles reales, errores/pista/saltos/doble envío sin incrementar contador, aceptación por teclado y clic, restauración entre niveles, ausencia de avance automático y máximo sin oferta. El helper cubre configuración no consecutiva, vacía y nivel desconocido. Cobertura game.mjs: líneas/funciones 100%, ramas 98.11%. Se observó RED antes del código: export nextLevel y elemento #progress inexistentes. La captura generada `test-results/completed-mobile.png` fue inspeccionada: 13/13 y botón Difícil legibles sin desborde a 375px; no se versiona. Sin build frontend (archivos estáticos), sin cambios ni build Docker. No se probó dispositivo físico ni otros motores de navegador. Progreso sólo en memoria. QA e integración siguen pendientes; esta fase no publica ni modifica main.
 
 Diseño previo: `/home/fer/projects/juego-calles-arrecifes/APP_SPEC.md`.
 Nuevos: APP_SPEC.md, index.html, styles.css, game.mjs, app.mjs, package.json, package-lock.json, tests/game.test.mjs, tests/browser.test.mjs, APP_README.md, APP_TEST_RESULTS.txt y capturas en test-results/. node_modules es instalación local de tooling, no entregable publicable.

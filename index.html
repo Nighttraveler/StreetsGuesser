@@ -32,6 +32,7 @@
       <div class="play-panel">
         <div class="level-row"><label for="level">Elegí tu desafío</label><select id="level" disabled><option value="1">1 · Fácil</option><option value="2">2 · Medio</option><option value="3">3 · Difícil</option></select></div>
         <p class="level-note" id="level-note">Cargando calles reales…</p>
+        <p class="level-note" id="progress-note" role="status" aria-live="polite" aria-atomic="true" hidden><span id="progress"></span> acertadas/total</p>
         <div class="stats" aria-live="polite" aria-atomic="true"><div><span id="score">0</span><small>PUNTOS</small></div><div><span id="streak">0</span><small>RACHA</small></div></div>
         <p class="eyebrow round-label">SEGUÍ EL TRAZO VERDE</p>
         <h2>¿Qué calle es?</h2>
@@ -46,6 +47,7 @@
         <div id="feedback" class="feedback" role="status" aria-live="polite" aria-atomic="true">Cargando el mapa…</div>
         <button id="retry" type="button" hidden>Reintentar carga</button>
         <button class="primary" id="next" type="button" hidden>Siguiente calle →</button>
+        <button class="primary" id="advance" type="button" hidden></button>
         <p class="rules">Acierto: +10 · Con pista: +5<br>Error o salto: racha a cero. Cambiar de nivel reinicia los marcadores.</p>
       </div>
     </section>

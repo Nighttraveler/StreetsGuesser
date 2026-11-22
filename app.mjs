@@ -1,4 +1,4 @@
-import { selectStreet, matchesAnswer, initialState, updateState, hintFor, isMapDrag, panView, streetId, getProgress } from './game.mjs';
+import { selectStreet, matchesAnswer, initialState, updateState, hintFor, isMapDrag, panView, streetId, getProgress, nextLevel } from './game.mjs';
 
 const byId = id => document.getElementById(id);
 const map = byId('map');
@@ -61,8 +61,21 @@ function message(text, kind = '') {
   feedback.textContent = text;
   feedback.className = `feedback ${kind}`;
 }
+function nextDifficulty() {
+  const options = [...level.options].filter(option => !option.disabled);
+  const value = nextLevel(level.value, options.map(option => option.value));
+  return options.find(option => option.value === value);
+}
+function focusCompletion() {
+  (byId('advance').hidden ? level : byId('advance')).focus();
+}
 function renderState() {
-  const completed = getProgress(streets, level.value, state).completed;
+  const { correct, total, completed } = getProgress(streets, level.value, state);
+  byId('progress').textContent = `${correct}/${total}`;
+  byId('progress-note').hidden = false;
+  const destination = nextDifficulty();
+  byId('advance').hidden = !completed || !destination;
+  byId('advance').textContent = destination ? `Subir a ${destination.textContent} →` : '';
   const unavailable = !current || state.resolved || completed;
   byId('score').textContent = state.score;
   byId('streak').textContent = state.streak;
@@ -162,7 +175,7 @@ byId('answer-form').addEventListener('submit', event => {
     message(`¡Bien! Es ${current.nombre}. +${state.hinted ? 5 : 10} puntos.`, 'success');
     if (getProgress(streets, level.value, state).completed) {
       message(`¡Bien! Es ${current.nombre}. +${state.hinted ? 5 : 10} puntos. Nivel completado.`, 'success');
-      level.focus();
+      focusCompletion();
     } else {
       byId('next').focus();
     }
@@ -189,10 +202,22 @@ byId('next').addEventListener('click', () => {
   nextRound();
   answer.focus();
 });
-level.addEventListener('change', () => {
+function changeLevel() {
   state = initialState(state.solvedByLevel);
   nextRound();
-  if (current) message('Nuevo nivel: puntos y racha reiniciados. ¿Qué calle está resaltada?');
+  if (current) {
+    message('Nuevo nivel: puntos y racha reiniciados. ¿Qué calle está resaltada?');
+    answer.focus();
+  } else {
+    focusCompletion();
+  }
+}
+level.addEventListener('change', changeLevel);
+byId('advance').addEventListener('click', () => {
+  const destination = nextDifficulty();
+  if (!getProgress(streets, level.value, state).completed || !destination) return;
+  level.value = destination.value;
+  changeLevel();
 });
 byId('overview').addEventListener('click', () => zoomTo(fullView));
 byId('locate').addEventListener('click', () => zoomTo(targetView));
