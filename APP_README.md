@@ -41,7 +41,8 @@ El nombre canónico es `Avenida Carlos Merlassino`. Se aceptan explícitamente `
 ## Reglas y controles
 
 - Nivel 1 / Fácil: 15 calles principales; nivel 2 / Medio: 13 conexiones intermedias; nivel 3 / Difícil: 145 calles residenciales. Selección exacta, no acumulativa, uniforme entre opciones salvo exclusión de la calle anterior para evitar repetición inmediata.
-- La calle seleccionada resalta todos sus tramos, incluidos los desconectados. Zoom suave al conjunto, inmediato con preferencia de movimiento reducido. Botones +, −, Vista general y Ver calle; no requiere gestos ni arrastre.
+- La calle seleccionada resalta todos sus tramos, incluidos los desconectados. Zoom suave al conjunto, inmediato con preferencia de movimiento reducido. Botones +, −, Vista general y Ver calle disponibles sin gestos.
+- Para explorar, mantener presionado el botón principal del mouse sobre el mapa y arrastrar al menos 5 píxeles. El contenido sigue al puntero sin cambiar el zoom ni la ronda; un clic simple no desplaza ni cambia la partida. Soltar (incluso fuera del mapa) o perder el foco termina el gesto. Los controles no inician arrastre y Ver calle recupera el encuadre original. Se conservan los límites de zoom; no existen límites de posición de cámara. No se agregan gestos táctiles ni de rueda.
 - Ingresar respuesta y Enter o Comprobar. Se ignoran caja, tildes y prefijos iniciales Av./Av/Avenida/Calle/Dr./Dr/Gral./Gral; no se aceptan subcadenas arbitrarias.
 - Acierto: +10, racha +1. Pista: letra inicial y palabras del nombre sin prefijos; acierto con pista +5. Error: puntos conservados, racha cero, se puede reintentar.
 - Saltar / Ver respuesta: conserva puntos y reinicia racha. La respuesta queda legible sin temporizador hasta pulsar Siguiente calle. Un acierto también espera Siguiente y no permite sumar dos veces.
@@ -77,6 +78,21 @@ Capturas reales generadas por las pruebas e inspeccionadas visualmente:
 - `/home/fer/projects/juego-calles-arrecifes/test-results/mobile.png` (375×812, página completa).
 
 ## Handoff y alcance
+
+### Actualización t_c065e516: navegación con mouse
+
+En el repositorio actual StreetGuesser, el cambio OpenSpec `mouse-map-pan` fue validado y confirmado en `78fd2ad` antes de editar código. Implementación aislada en `wt/t_c065e516`, base común con main `4c451ac03c0b10ebcc7ad6c0d62cce2ea328d280`. Los apartados históricos de esta guía conservan las rutas y evidencia de la entrega inicial.
+
+Verificación de esta actualización:
+
+- `npm test`: 7/7 (dos grupos nuevos: umbral y transformación SVG); red inicial por export inexistente, luego verde.
+- `npm run test:functional`: 8/8, dos ejecuciones completas consecutivas. Cuatro escenarios nuevos: arrastre continuo/escala/clics, interrupciones, controles/comandos y cancelación de animación. Blur y visibilidad se simulan mediante eventos del DOM; release fuera y movimientos/botones se ejercitan con mouse real de Playwright.
+- `make openspec-validate CHANGE=mouse-map-pan`, `openspec validate --all --strict --no-interactive`: válidos (3 cambios). `make openspec-guard-test`: 7/7. `node --check app.mjs`, `node --check game.mjs` y `git diff --check`: sin errores.
+- `python3 -m unittest discover -s tests -p 'test_serve_static.py' -v`: 4/4. `uv run --offline test_gis.py`: 11/11. SHA-256 del dataset inalterado respecto del original indicado arriba.
+- `SMOKE_SUBNET=10.254.241.0/28 bash tests/compose-smoke.sh 18092`: build y smoke completos linux/arm64, 9/9 HTTP/Chromium, healthcheck, restricciones, stop/start, recuperación, recreación y rollback offline correctos. Se usó subnet verificada sin solapamiento porque el pool Docker por defecto estaba agotado. Proyecto y etiquetas de prueba eliminados; sin cambios de infraestructura ni producción.
+- Fallos de preparación resueltos: ejecutar directamente la suite Compose sin levantar servicio dio conexión rechazada; el runner completo posterior pasó. La primera prueba de escala usaba una posición anterior al cambio de aspecto del SVG: se recalculó el centro antes del gesto, conservando la tolerancia numérica original.
+
+Sin migraciones, dependencias ni cambios GIS; mismo conjunto de cinco estáticos. No probado en Firefox/Safari ni dispositivos físicos. Revisión independiente: `t_548bb6b5`. Integración a main y despliegue no se realizan en esta fase; hashes finales y estado limpio se entregan en Kanban.
 
 Diseño previo: `/home/fer/projects/juego-calles-arrecifes/APP_SPEC.md`.
 Nuevos: APP_SPEC.md, index.html, styles.css, game.mjs, app.mjs, package.json, package-lock.json, tests/game.test.mjs, tests/browser.test.mjs, APP_README.md, APP_TEST_RESULTS.txt y capturas en test-results/. node_modules es instalación local de tooling, no entregable publicable.

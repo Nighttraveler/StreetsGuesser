@@ -1,8 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { normalizeName, matchesAnswer, selectStreet, initialState, updateState, hintFor } from '../game.mjs';
+import { normalizeName, matchesAnswer, selectStreet, initialState, updateState, hintFor, isMapDrag, panView } from '../game.mjs';
 const streets = JSON.parse(await readFile(new URL('../arrecifes_calles.json', import.meta.url)));
+
+test('umbral euclidiano de arrastre en píxeles CSS, inclusive y simétrico', () => {
+  assert.equal(isMapDrag(0, 0), false);
+  assert.equal(isMapDrag(3, 3), false);
+  assert.equal(isMapDrag(3, 4), true);
+  assert.equal(isMapDrag(-5, 0), true);
+  assert.equal(isMapDrag(0, -6), true);
+});
+test('desplazamiento SVG usa la parte lineal de la matriz y preserva zoom sin mutar', () => {
+  const view = [10, 20, 300, 100];
+  assert.deepEqual(panView(view, 12, -8, { a: 2, b: 0, c: 0, d: 2, e: 999, f: 999 }), [-14, 36, 300, 100]);
+  assert.deepEqual(panView(view, -12, 8, { a: .5, b: 1, c: -1, d: .5 }), [24, 28, 300, 100]);
+  assert.deepEqual(view, [10, 20, 300, 100]);
+});
 
 test('normaliza mayúsculas, tildes, espacios y todos los prefijos pedidos', () => {
   for (const prefix of ['Av.', 'Av', 'Avenida', 'Calle', 'Dr.', 'Dr', 'Gral.', 'Gral', 'Avenida Dr.']) {

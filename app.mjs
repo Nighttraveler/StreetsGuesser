@@ -1,4 +1,4 @@
-import { selectStreet, matchesAnswer, initialState, updateState, hintFor } from './game.mjs';
+import { selectStreet, matchesAnswer, initialState, updateState, hintFor, isMapDrag, panView } from './game.mjs';
 
 const byId = id => document.getElementById(id);
 const map = byId('map');
@@ -16,6 +16,46 @@ let targetView;
 let view = [0, 0, 1000, 800];
 let animation;
 let projected = [];
+let drag;
+let suppressMapClick = false;
+
+function stopDrag() {
+  drag = undefined;
+  map.classList.remove('dragging');
+}
+// A new press (including one on a control) cannot inherit a suppressed click.
+window.addEventListener('mousedown', () => { suppressMapClick = false; }, true);
+map.addEventListener('mousedown', event => {
+  if (event.button !== 0 || !fullView ||
+      event.target.closest('button, a, input, select, textarea, [role="button"], [contenteditable]')) return;
+  drag = { x: event.clientX, y: event.clientY, active: false };
+});
+window.addEventListener('mousemove', event => {
+  if (!drag) return;
+  if (!(event.buttons & 1)) { stopDrag(); return; }
+  const dx = event.clientX - drag.x;
+  const dy = event.clientY - drag.y;
+  if (!drag.active && !isMapDrag(dx, dy)) return;
+  const matrix = map.getScreenCTM();
+  if (!matrix) { stopDrag(); return; }
+  cancelAnimationFrame(animation);
+  drag.active = true;
+  suppressMapClick = true;
+  map.classList.add('dragging');
+  setView(panView(view, dx, dy, matrix.inverse()));
+  drag.x = event.clientX;
+  drag.y = event.clientY;
+  event.preventDefault();
+});
+window.addEventListener('mouseup', event => { if (event.button === 0) stopDrag(); });
+window.addEventListener('blur', stopDrag);
+document.addEventListener('visibilitychange', () => { if (document.hidden) stopDrag(); });
+map.addEventListener('click', event => {
+  if (!suppressMapClick || event.detail === 0) return;
+  suppressMapClick = false;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+}, true);
 
 function message(text, kind = '') {
   feedback.textContent = text;
@@ -35,6 +75,7 @@ function setView(box) {
   map.setAttribute('viewBox', box.join(' '));
 }
 function zoomTo(box) {
+  stopDrag();
   cancelAnimationFrame(animation);
   if (reducedMotion.matches) { setView(box); return; }
   const start = [...view];

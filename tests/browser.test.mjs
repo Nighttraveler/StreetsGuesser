@@ -51,6 +51,160 @@ async function activeStreet(page) {
   return data[Number(index)];
 }
 
+async function camera(page) {
+  return (await page.locator('#map').getAttribute('viewBox')).split(' ').map(Number);
+}
+async function mapPoint(page) {
+  const box = await page.locator('#map').boundingBox();
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+async function startDrag(page) {
+  const point = await mapPoint(page);
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  await page.mouse.move(point.x + 40, point.y + 30);
+  return point;
+}
+
+test('arrastre continuo a escala SVG, umbral, clics y botones secundarios', async () => {
+  const { context, page, errors } = await openPage({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+  try {
+    await ready(page);
+    await page.evaluate(() => {
+      window.mapClicks = 0;
+      document.getElementById('map').addEventListener('click', () => window.mapClicks++);
+    });
+    const initialStreet = await activeStreet(page);
+    const point = await mapPoint(page);
+    const before = await camera(page);
+    await page.mouse.click(point.x, point.y);
+    await page.mouse.down();
+    await page.mouse.move(point.x + 2, point.y + 2);
+    await page.mouse.up();
+    assert.deepEqual(await camera(page), before);
+    assert.equal(await page.evaluate(() => window.mapClicks), 2);
+    for (const button of ['right', 'middle']) {
+      await page.mouse.move(point.x, point.y);
+      await page.mouse.down({ button });
+      await page.mouse.move(point.x + 40, point.y + 30);
+      await page.mouse.up({ button });
+      assert.deepEqual(await camera(page), before);
+    }
+    // Both the round's narrow view and full view can have letterboxing.
+    for (const control of ['locate', 'overview', 'zoom-in']) {
+      await page.locator(`#${control}`).click();
+      const original = await camera(page);
+      const scale = await page.locator('#map').evaluate(map => map.getScreenCTM().a);
+      const dragPoint = await startDrag(page);
+      const first = await camera(page);
+      assert.ok(Math.abs(first[0] - (original[0] - 40 / scale)) < .001);
+      assert.ok(Math.abs(first[1] - (original[1] - 30 / scale)) < .001);
+      assert.deepEqual(first.slice(2), original.slice(2));
+      assert.equal(await page.locator('#map').evaluate(map => getComputedStyle(map).cursor), 'grabbing');
+      await page.mouse.move(dragPoint.x + 70, dragPoint.y - 20);
+      const second = await camera(page);
+      assert.ok(Math.abs(second[0] - (original[0] - 70 / scale)) < .001);
+      assert.ok(Math.abs(second[1] - (original[1] + 20 / scale)) < .001, JSON.stringify({ control, original, second, scale, dragPoint }));
+      await page.mouse.up();
+      assert.equal(await page.evaluate(() => window.mapClicks), 2);
+      await page.mouse.move(point.x, point.y);
+      assert.deepEqual(await camera(page), second);
+    }
+    await page.mouse.click(point.x, point.y);
+    assert.equal(await page.evaluate(() => window.mapClicks), 3);
+    assert.equal(await page.locator('#map').evaluate(map => getComputedStyle(map).cursor), 'grab');
+    assert.equal((await activeStreet(page)).nombre, initialStreet.nombre);
+    assert.equal(await page.locator('#score').innerText(), '0');
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
+});
+
+test('soltar fuera, perder foco, ocultar documento y perder mouseup detienen el gesto', async () => {
+  const { context, page, errors } = await openPage({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+  try {
+    await ready(page);
+    for (const interruption of ['outside', 'blur', 'hidden', 'buttons']) {
+      const point = await startDrag(page);
+      if (interruption === 'outside') {
+        await page.mouse.move(1250, 100);
+        await page.mouse.up();
+      } else if (interruption === 'blur') {
+        await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+      } else if (interruption === 'hidden') {
+        await page.evaluate(() => {
+          Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+          document.dispatchEvent(new Event('visibilitychange'));
+          delete document.hidden;
+        });
+      } else {
+        await page.evaluate(() => window.dispatchEvent(new MouseEvent('mousemove', { buttons: 0 })));
+      }
+      const stopped = await camera(page);
+      await page.mouse.move(point.x - 30, point.y - 20);
+      assert.deepEqual(await camera(page), stopped, interruption);
+      assert.equal(await page.locator('#map.dragging').count(), 0);
+      await page.mouse.up();
+      // A fresh press must still work after each interruption.
+      await startDrag(page);
+      assert.notDeepEqual(await camera(page), stopped);
+      await page.mouse.up();
+    }
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
+});
+
+test('controles no inician arrastre y comandos de cámara cancelan el gesto anterior', async () => {
+  const { context, page, errors } = await openPage({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+  try {
+    await ready(page);
+    const before = await camera(page);
+    const point = await mapPoint(page);
+    for (const id of ['zoom-in', 'zoom-out', 'overview', 'locate', 'answer', 'level', 'hint', 'skip']) {
+      const box = await page.locator(`#${id}`).boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(point.x, point.y);
+      assert.deepEqual(await camera(page), before, id);
+      assert.equal(await page.locator('#map.dragging').count(), 0);
+      await page.mouse.up();
+    }
+    for (const id of ['overview', 'locate', 'zoom-in', 'zoom-out']) {
+      await startDrag(page);
+      // Keyboard/programmatic commands can happen while the mouse is held.
+      await page.locator(`#${id}`).evaluate(button => button.click());
+      const commanded = await camera(page);
+      await page.mouse.move(point.x - 50, point.y - 50);
+      assert.deepEqual(await camera(page), commanded);
+      await page.mouse.up();
+    }
+    await startDrag(page);
+    await page.locator('#level').selectOption('2');
+    const next = await camera(page);
+    await page.mouse.move(point.x - 60, point.y);
+    assert.deepEqual(await camera(page), next);
+    await page.mouse.up();
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
+});
+
+test('arrastre interrumpe el zoom animado sin saltos posteriores', async () => {
+  const { context, page, errors } = await openPage({ viewport: { width: 1280, height: 900 }, reducedMotion: 'no-preference' });
+  try {
+    await ready(page);
+    await page.waitForTimeout(750);
+    await page.locator('#overview').click();
+    await page.waitForTimeout(100);
+    await startDrag(page);
+    const dragged = await camera(page);
+    await page.waitForTimeout(750);
+    assert.deepEqual(await camera(page), dragged);
+    await page.mouse.up();
+    await page.waitForTimeout(100);
+    assert.deepEqual(await camera(page), dragged);
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
+});
+
 test('HTTP real: mapa, controles, Enter, alias, puntos, error, pista y salto persistente', async () => {
   const { context, page, errors, external } = await openPage({ viewport: { width: 1280, height: 1000 }, reducedMotion: 'reduce' });
   try {

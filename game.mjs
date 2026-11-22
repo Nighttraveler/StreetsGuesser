@@ -1,4 +1,13 @@
 // Reglas puras, independientes del DOM y del transporte de datos.
+export function isMapDrag(dx, dy) {
+  return Math.hypot(dx, dy) >= 5;
+}
+
+export function panView(view, dx, dy, inverse) {
+  return [view[0] - inverse.a * dx - inverse.c * dy,
+    view[1] - inverse.b * dx - inverse.d * dy, view[2], view[3]];
+}
+
 export function normalizeName(value) {
   return value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim()
     .replace(/^(?:(?:avenida|calle|av|dr|gral)(?:\.(?:\s*|$)|\s+|$))+/u, '')
