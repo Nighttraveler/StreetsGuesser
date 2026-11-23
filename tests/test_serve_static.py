@@ -59,7 +59,8 @@ class StaticServerTests(unittest.TestCase):
             self.assertEqual(head_headers[header], get_headers[header])
 
     def test_private_or_unknown_paths_never_read_from_checkout(self):
-        for path in ("/package.json", "/serve_static.py", "/tests/", "/.env", "/missing"):
+        for path in ("/package.json", "/serve_static.py", "/tests/", "/.env", "/missing",
+                     "/data/arrecifes/source.json", "/data/arrecifes/city.json"):
             with self.subTest(path=path):
                 status, _, body = self.request("GET", path)
                 self.assertEqual(status, 404)

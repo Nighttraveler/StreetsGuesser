@@ -3,13 +3,20 @@
 # requires-python = ">=3.11"
 # dependencies = ["shapely==2.1.2"]
 # ///
-"""Offline deterministic conversion; acquisition commands live in GIS_README.md."""
+"""Offline deterministic conversion; acquisition is isolated in download_gis.py."""
+import argparse
 import collections
 import hashlib
 import json
+import os
 from pathlib import Path
+import sys
+import tempfile
 import unicodedata
+from download_gis import (DownloadError, DownloadOptions, load_city_config, parse_json,
+                          validate_options, validate_slug, validate_source)
 from shapely.geometry import LineString, Point, mapping
+from shapely.errors import ShapelyError
 from shapely.ops import polygonize_full, unary_union
 
 ROOT = Path(__file__).resolve().parent
@@ -20,8 +27,8 @@ def key(name):
     return ' '.join(unicodedata.normalize('NFC', name).casefold().split())
 
 
-def boundary(source):
-    relation = next(e for e in source['elements'] if e['type'] == 'relation' and e['id'] == 3743598)
+def boundary(source, *, relation_id, reference_point_lonlat):
+    relation = next(e for e in source['elements'] if e['type'] == 'relation' and e['id'] == relation_id)
     lines = []
     for member in relation['members']:
         if member['type'] == 'node' and member['role'] == 'label':
@@ -32,7 +39,7 @@ def boundary(source):
     assert cuts.is_empty and dangles.is_empty and invalid.is_empty
     poly = unary_union(polygons)
     assert poly.geom_type == 'Polygon' and poly.is_valid and not poly.is_empty
-    assert poly.contains(Point(-60.1087380, -34.0674983))
+    assert poly.contains(Point(*reference_point_lonlat))
     return poly
 
 
@@ -105,21 +112,69 @@ def dump(path, data):
     path.write_text(json.dumps(data, ensure_ascii=False, separators=(',', ':'), allow_nan=False) + '\n', encoding='utf-8')
 
 
-def main():
-    source_path = ROOT / 'arrecifes_source.json'
-    source = json.loads(source_path.read_text(encoding='utf-8'))
-    poly = boundary(source)
+def provenance(directory, city, raw):
+    sidecar = directory / 'acquisition.json'
+    digest = hashlib.sha256(raw).hexdigest()
+    if sidecar.exists():
+        try:
+            info = parse_json(sidecar.read_bytes())
+            if (not isinstance(info, dict) or set(info) != {'endpoint', 'city_slug', 'source_sha256', 'query_file'}
+                    or info['city_slug'] != city.slug or info['source_sha256'] != digest
+                    or info['query_file'] != 'extract.overpassql'):
+                raise ValueError('Acquisition mismatch')
+            validate_options(DownloadOptions(endpoint=info['endpoint']))
+            return info['endpoint']
+        except (ValueError, TypeError) as error:
+            raise DownloadError('config', 'Invalid acquisition provenance') from error
+    # Explicit historical exception, not a fallback for unknown staging/cities.
+    if (directory.resolve() == (ROOT / 'data/arrecifes').resolve() and city.slug == 'arrecifes'
+            and digest == '9db4231faf45553abb7e251670e958a3b7ae5772a223ff57c5208cc98965de40'):
+        return DownloadOptions().endpoint
+    raise DownloadError('config', 'Unknown provenance: acquisition.json is required')
+
+
+def encoded(data):
+    return (json.dumps(data, ensure_ascii=False, separators=(',', ':'), allow_nan=False) + '\n').encode('utf-8')
+
+
+def publish_prepared(outputs):
+    """Prepare every byte on the target filesystem before replacing any output."""
+    prepared = []
+    try:
+        for target, content in outputs.items():
+            with tempfile.NamedTemporaryFile(dir=target.parent, prefix='.gis-', delete=False) as handle:
+                temporary = Path(handle.name)
+                prepared.append((temporary, target))
+                handle.write(content)
+            os.chmod(temporary, 0o644)
+        for temporary, target in prepared:
+            temporary.replace(target)
+    finally:
+        for temporary, _ in prepared:
+            temporary.unlink(missing_ok=True)
+
+
+def transform_city(city, directory, *, public_path=None):
+    directory = Path(directory).resolve()
+    raw = (directory / 'source.json').read_bytes()
+    source = validate_source(raw, city)
+    endpoint = provenance(directory, city, raw)
+    query = (directory / 'extract.overpassql').read_text(encoding='utf-8')
+    if (f'rel({city.boundary_relation_id});' not in query or 'out meta geom;' not in query):
+        raise DownloadError('config', 'Query does not identify the configured relation')
+    poly = boundary(source, relation_id=city.boundary_relation_id,
+                    reference_point_lonlat=city.reference_point_lonlat)
     result, rejected = build(source, poly)
     assert result and {e['nivel'] for e in result} == {1, 2, 3}
-    dump(ROOT / 'arrecifes_calles.json', result)
-    dump(ROOT / 'arrecifes_limite.geojson', {'type': 'Feature', 'properties': {'osm_relation_id': 3743598}, 'geometry': mapping(poly)})
+    streets = encoded(result)
+    limit = encoded({'type': 'Feature', 'properties': {'osm_relation_id': city.boundary_relation_id}, 'geometry': mapping(poly)})
     metadata = {
         'schema_version': 1,
-        'endpoint': 'https://overpass-api.de/api/interpreter',
+        'endpoint': endpoint,
         'query_file': 'extract.overpassql', 'fuente': source['osm3s'],
-        'source_sha256': hashlib.sha256(source_path.read_bytes()).hexdigest(),
-        'output_sha256': hashlib.sha256((ROOT / 'arrecifes_calles.json').read_bytes()).hexdigest(),
-        'limite_relation_id': 3743598, 'bbox_wsen': list(poly.bounds),
+        'source_sha256': hashlib.sha256(raw).hexdigest(),
+        'output_sha256': hashlib.sha256(streets).hexdigest(),
+        'limite_relation_id': city.boundary_relation_id, 'bbox_wsen': list(poly.bounds),
         'conteo_entidades': len(result), 'conteo_por_nivel': dict(sorted(collections.Counter(e['nivel'] for e in result).items())),
         'vias_fuente': sum(e['type'] == 'way' for e in source['elements']),
         'vias_incluidas': len({i for e in result for i in e['osm_way_ids']}),
@@ -128,9 +183,40 @@ def main():
         'atribucion': '© OpenStreetMap contributors', 'licencia': 'ODbL 1.0',
         'copyright_url': 'https://www.openstreetmap.org/copyright'
     }
-    dump(ROOT / 'arrecifes_metadata.json', metadata)
-    print(json.dumps({k: v for k, v in metadata.items() if k not in ('exclusiones',)}, ensure_ascii=False, indent=2))
+    outputs = {directory / 'calles.json': streets, directory / 'limite.geojson': limit,
+               directory / 'metadata.json': encoded(metadata)}
+    if public_path is not None:
+        if directory != (ROOT / 'data/arrecifes').resolve() or city.slug != 'arrecifes' or Path(public_path) != ROOT / 'arrecifes_calles.json':
+            raise DownloadError('config', 'Only canonical compatibility execution may publish')
+        outputs[Path(public_path)] = streets
+    publish_prepared(outputs)
+    return metadata
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--city', default='arrecifes')  # compatibility wrapper only
+    parser.add_argument('--input-dir', type=Path)
+    args = parser.parse_args(argv)
+    try:
+        slug = validate_slug(args.city)
+        canonical = ROOT / 'data' / slug
+        city = load_city_config(canonical / 'city.json')
+        directory = args.input_dir.resolve() if args.input_dir is not None else canonical
+        if args.input_dir is not None:
+            data_root = (ROOT / 'data').resolve()
+            if directory.is_relative_to(data_root) or data_root.is_relative_to(directory):
+                raise DownloadError('config', '--input-dir must be outside canonical data')
+        public = ROOT / 'arrecifes_calles.json' if args.input_dir is None and slug == 'arrecifes' else None
+        metadata = transform_city(city, directory, public_path=public)
+        print(json.dumps({k: v for k, v in metadata.items() if k != 'exclusiones'}, ensure_ascii=False, indent=2))
+        return 0
+    except (DownloadError, OSError, ValueError, TypeError, IndexError, AssertionError, KeyError, StopIteration, ShapelyError) as error:
+        # Do not log source objects or remote remarks.
+        code = error.code if isinstance(error, DownloadError) else 'io' if isinstance(error, OSError) else 'invalid_response'
+        print(f'{code}: Offline transformation failed; no publication approved', file=sys.stderr)
+        return 1
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

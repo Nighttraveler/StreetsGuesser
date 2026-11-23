@@ -1,20 +1,20 @@
 # Entrega GIS — Arrecifes
 
-Entrega terminada y validada el 2026-11-19 UTC. Esta documentación sustituye el bloqueo histórico de GIS_BLOCKER.txt. La fuente final sí fue obtenida de Overpass, no de la API de edición ni de datos inventados.
+Snapshot histórico obtenido y validado el 2026-11-19 UTC. Esta documentación sustituye el bloqueo histórico de GIS_BLOCKER.txt. La fuente final sí fue obtenida de Overpass, no de la API de edición ni de datos inventados. La organización y adquisición reutilizable posteriores siguen CITY_DOWNLOAD_SPEC.md y OpenSpec city-data-download. GIS_TEST_RESULTS.txt, GIS_HANDOFF.json y GIS_BLOCKER.txt son evidencia histórica, no resultados de la versión actual.
 
 ## Resultado y archivos
 
-Directorio: /home/fer/projects/juego-calles-arrecifes
+Directorio canónico actual: data/arrecifes/ relativo al repositorio StreetGuesser. No publicar este árbol.
 
-- arrecifes_calles.json: contrato para el desarrollador, UTF-8 compacto, 114481 bytes.
-- arrecifes_metadata.json: procedencia, hashes SHA-256, conteos y exclusiones individuales.
-- arrecifes_source.json: respuesta original Overpass con geometrías completas y versiones OSM.
-- arrecifes_limite.geojson: polígono exacto usado para recortar, WGS84.
+- city.json: identidad declarativa, relación urbana y punto de referencia lon/lat.
+- calles.json: contrato para el desarrollador, UTF-8 compacto, 114481 bytes. La copia pública generada arrecifes_calles.json sigue en la raíz, idéntica byte a byte; no editarla manualmente.
+- metadata.json: procedencia, hashes SHA-256, conteos y exclusiones individuales.
+- source.json: respuesta original Overpass con geometrías completas y versiones OSM.
+- limite.geojson: polígono exacto usado para recortar, WGS84.
 - discover.overpassql y discover-retry.json: descubrimiento exitoso de la localidad.
 - verify-area.overpassql y verify-area.json: verificación de jerarquía administrativa.
 - extract.overpassql: consulta final reproducible.
-- extract_gis.py: transformación offline determinista (Python >=3.11, Shapely 2.1.2).
-- test_gis.py y GIS_TEST_RESULTS.txt: pruebas y resultado real.
+- En la raíz: download_gis.py (biblioteca/CLI Python >=3.11 con curl); extract_gis.py (transformación offline, Shapely 2.1.2); test_download_gis.py y test_gis.py (pruebas sin red).
 
 173 entidades lógicas; 407 vías incluidas y 407 segmentos después del recorte. Niveles: 1/Fácil = 15; 2/Medio = 13; 3/Difícil = 145. Ningún nivel vacío. Fuente inicial: 414 vías con highway y name; 7 excluidas con motivo registrado en metadata. Se excluyeron service, motorway, footway y path; también el marcador `Calle S/N` (way 98251701), que no identifica una calle con nombre real. No se asignaron niveles ficticios a clases no elegibles.
 
@@ -22,9 +22,9 @@ Directorio: /home/fer/projects/juego-calles-arrecifes
 
 Localidad: nodo https://www.openstreetmap.org/node/198439470, place=town, Arrecifes, Buenos Aires, Argentina; punto lon=-60.1087380, lat=-34.0674983, Wikidata Q2706121.
 
-Se encontró un área propia de la localidad: relación https://www.openstreetmap.org/relation/3743598, name=Arrecifes, boundary=administrative, admin_level=8, versión 9. NO es el partido. La consulta is_in del punto devuelve además Partido de Arrecifes, área 3602455558 (relación 2455558), admin_level=5, y Buenos Aires admin_level=4 / Argentina admin_level=2. Esa jerarquía está preservada en verify-area.json. No se usó el partido ni un bbox inventado como delimitación urbana.
+Se encontró un área propia de la localidad: relación https://www.openstreetmap.org/relation/3743598, name=Arrecifes, boundary=administrative, admin_level=8, versión 9. NO es el partido. La consulta is_in del punto devuelve además Partido de Arrecifes, área 3602455558 (relación 2455558), admin_level=5, y Buenos Aires admin_level=4 / Argentina admin_level=2. Esa jerarquía está preservada en data/arrecifes/verify-area.json. No se usó el partido ni un bbox inventado como delimitación urbana.
 
-El límite de la localidad se construye con los 18 miembros way/outer de la relación. Se exige un único polígono válido, sin bordes colgantes ni anillos abiertos y que contenga el nodo de la localidad; el miembro label no participa de la geometría. Se exporta íntegro en arrecifes_limite.geojson. Extensión del polígono, en orden oeste/sur/este/norte:
+El límite de la localidad se construye con los 18 miembros way/outer de la relación. Se exige un único polígono válido, sin bordes colgantes ni anillos abiertos y que contenga el nodo de la localidad; el miembro label no participa de la geometría. Se exporta íntegro en data/arrecifes/limite.geojson. Extensión del polígono, en orden oeste/sur/este/norte:
 [-60.1353677, -34.0919954, -60.0665664, -34.0411583].
 
 La consulta selecciona way["highway"]["name"] en el área 3603743598 y usa `out meta geom` sin bbox: conserva en la fuente las geometrías completas. Después se intersecta cada línea con el polígono local antes de redondear, evitando que las rutas que atraviesan la localidad prolonguen el mapa por el campo. NO se recorta al mero rectángulo de extensión. Si una vía sale y reentra, cada parte se conserva separadamente. No se unen extremos de vías ni se inventan conexiones.
@@ -67,7 +67,7 @@ Endpoint: https://overpass-api.de/api/interpreter
 Motor reportado: Overpass API 0.7.62.11 87bfad18.
 Fecha base OSM final: 2026-11-19T22:37:35Z.
 Fecha base áreas final: 2026-11-19T16:26:38Z.
-Las fechas de modificación de cada objeto están en arrecifes_source.json; no confundirlas con la fecha global del snapshot. Las respuestas de descubrimiento/verificación se adquirieron en peticiones separadas y tienen su propia fecha.
+Las fechas de modificación de cada objeto están en data/arrecifes/source.json; no confundirlas con la fecha global del snapshot. Las respuestas de descubrimiento/verificación se adquirieron en peticiones separadas y tienen su propia fecha.
 
 © OpenStreetMap contributors — datos bajo ODbL 1.0.
 https://www.openstreetmap.org/copyright
@@ -77,7 +77,7 @@ La fuente raw incluye metadatos públicos de editores OSM. No es necesaria para 
 
 ## Reproducción
 
-Desde /home/fer/projects/juego-calles-arrecifes:
+Desde la raíz del checkout (los CLI resuelven configuración respecto al módulo, no al cwd):
 
 1. Reproducir exactamente la transformación del snapshot conservado, sin red:
 
@@ -90,20 +90,34 @@ SHA-256 fuente: 9db4231faf45553abb7e251670e958a3b7ae5772a223ff57c5208cc98965de40
 
 Se ejecutó el extractor dos veces y el hash de salida permaneció idéntico. uv instala Shapely 2.1.2 según los metadatos PEP 723 del script; requiere conectividad inicial si no está en caché. No se requiere instalar dependencias para consumir el JSON en el navegador.
 
-2. Para una NUEVA extracción, ejecutar secuencialmente (cambia el snapshot y pueden cambiar conteos):
+2. Para una NUEVA extracción, usar un destino inexistente fuera de data/ (no se promueve automáticamente):
 
-   curl -sS --fail --connect-timeout 15 --max-time 120 -A 'ArrecifesStreetStudy/1.0 (one-off GIS extraction)' --data-urlencode data@discover.overpassql https://overpass-api.de/api/interpreter -o discover-retry.json
-   curl -sS --fail --connect-timeout 15 --max-time 90 -A 'ArrecifesStreetStudy/1.0 (one-off GIS extraction)' --data-urlencode data@verify-area.overpassql https://overpass-api.de/api/interpreter -o verify-area.json
-   curl -sS --fail --connect-timeout 15 --max-time 150 -A 'ArrecifesStreetStudy/1.0 (one-off GIS extraction)' --data-urlencode data@extract.overpassql https://overpass-api.de/api/interpreter -o arrecifes_source.json
-   uv run extract_gis.py
-   uv run test_gis.py
+   python3 download_gis.py --city arrecifes --output-dir /ruta/nueva/staging-arrecifes
+   uv run extract_gis.py --city arrecifes --input-dir /ruta/nueva/staging-arrecifes
 
-No ejecutar consultas en paralelo ni hacer reintentos continuos. Ante 406/429 esperar al menos 30 segundos y comprobar la política vigente del servidor. Ante errores o una respuesta con remark no publicar la nueva salida. Para preservar este snapshot, realizar la nueva extracción en una copia del directorio. El script rechaza remark y geometrías/bordes inválidos; no fabrica resultados.
+La descarga hace un único POST y escribe source.json y extract.overpassql exactos más acquisition.json (endpoint, city_slug, source_sha256, query_file). La transformación verifica procedencia y genera calles.json, limite.geojson y metadata.json allí, sin tocar canónicos ni copia pública. Revisar y promover snapshots es un paso manual separado, fuera de este CLI. El wrapper sin argumentos sigue regenerando los canónicos de Arrecifes y su copia pública offline. Sin sidecar sólo se admite la fuente histórica canónica cuyo hash está registrado; un staging desconocido nunca hereda un endpoint supuesto.
+
+Opciones explícitas: --endpoint (HTTPS sin credenciales/fragmento), --user-agent, --connect-timeout-seconds (15), --total-timeout-seconds (150), --query-timeout-seconds (120). User-Agent histórico: ArrecifesStreetStudy/1.0 (one-off GIS extraction), identidad del cliente, no selector de ciudad. La biblioteca exporta CityConfig, DownloadOptions, OverpassRequest, DownloadResult; download_city recibe configuración y transporte inyectable, no escribe ni imprime. build_extract_query es puro. load_city_config rechaza claves desconocidas/duplicadas, versiones no admitidas, relación booleana o no positiva, slug inseguro y coordenadas inválidas antes de red.
+
+Errores DownloadError estables: config, transport (incluye curl ausente), timeout, http, invalid_json, invalid_response, overpass_remark, io. CLI: stderr conciso y exit no cero, sin publicar bytes parciales ni sobrescribir destino existente. curl no usa shell, redirects ni retries; no registra payloads de editores. Preparación de derivados en temporales antes de reemplazarlos, cada replace atómico; no es una transacción conjunta resistente a corte de energía durante múltiples reemplazos.
+
+No ejecutar consultas en paralelo ni hacer reintentos continuos. Ante 406/429 esperar al menos 30 segundos (respetar Retry-After si es mayor) y comprobar la política vigente del servidor. Ante errores o remark no publicar la salida. Ningún bucle de espera/reintento es automático.
+
+3. Alta futura compatible: verificar manualmente relación urbana, jerarquía y punto interior; guardar evidencia de descubrimiento/verificación bajo data/<slug>/. Los archivos discover.overpassql y verify-area.overpassql actuales son evidencia específica de Arrecifes, no templates automáticos. Crear data/<slug>/city.json con exactamente schema_version=1, slug ASCII kebab-case, name no vacío, boundary_relation_id entero positivo y reference_point_lonlat=[lon,lat]. Ejecutar los mismos comandos con --city <slug>, sin editar el módulo. Sólo admite el polígono/topología y clases existentes, y requiere tres niveles no vacíos. No activa ninguna ciudad nueva en el juego ni garantiza soporte para toda topología OSM.
 
 ## Pruebas ejecutadas
 
-Comando real: uv run test_gis.py > GIS_TEST_RESULTS.txt 2>&1
-Resultado: 11 tests, OK, código de salida 0.
+Resultado histórico: uv run test_gis.py > GIS_TEST_RESULTS.txt 2>&1 produjo 11 tests OK en la entrega inicial. No sobrescribir ese informe como si fuera actual.
+
+Verificación actual reproducible, sin servicios externos:
+
+   python3 -m unittest test_download_gis -v
+   uv run test_gis.py
+   python3 -m unittest discover -s tests -p 'test_serve_static.py' -v
+   npm test
+   npm run test:functional
+
+Las pruebas nuevas verifican ambas configuraciones por el mismo módulo, errores HTTP/timeout/red/JSON/remark/config, staging sin overwrite, procedencia, reproducción temporal con hashes y copia pública idénticos. HTTP raw/config devuelve 404. No se cambia app.mjs ni allowlist/imagen; únicamente el JSON raíz público se consume en producción.
 
 Cobertura explícita: agrupamiento de vías desconectadas; clasificación de las seis clases elegibles y rechazo de otras; mínimo nivel en clases mixtas; precisión decimal y eliminación de vértices colapsados; recorte con división en partes; nombres vacíos/marcadores; unicidad lógica, IDs y orden; validez y trazabilidad geométrica contra la fuente; ausencia de geometrías exactamente duplicadas (también invertidas); cobertura completa de vías fuente entre incluidas/excluidas; localidad distinta del partido; nombres de los tres ejemplos. Fixture sintético se usa solo en unit tests, nunca en la entrega.
 
