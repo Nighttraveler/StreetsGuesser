@@ -37,3 +37,13 @@ Entorno: Node v22.22.3, SQLite nativo3.51.3, Chromium local por Playwright. SQLi
 - `make install-hooks`: PASS, hook local versionado instalado antes del commit documental.
 
 Los hashes finales y la validación CI del rango se registran en el resultado estructurado y comentario a QA después de crear el commit. No hay aprobación independiente aún; este cierre es únicamente hito de implementación que libera t_ad651c3c, no cierre global ni integración a main.
+
+## Verificación posterior al commit de código
+
+- Especificación: `96c2bdee930270fe09e404cfddc39b891d8097fb`.
+- Código/prueba/evidencia: `61915920202737dec0d1c27e47153ad248987ed0`, exactamente un trailer `OpenSpec-Change: decouple-static-practice-rankings`.
+- `make openspec-ci-validate BASE=ee398b422fa639b4c3e48593c38b144a4e2b9d6b HEAD=61915920202737dec0d1c27e47153ad248987ed0`: PASS, dos cambios aplicables (rankings original y corrección), global10/10.
+- `git diff --check ee398b422fa639b4c3e48593c38b144a4e2b9d6b..61915920202737dec0d1c27e47153ad248987ed0`: PASS.
+- Ambos ancestros confirmados por `git merge-base --is-ancestor` (base main y candidato8dc5e789); `git merge-base main HEAD` = base ee398b4. Worktree limpio.
+- Reejecución sobre el commit: prueba estática Chromium1/1 y E2E SQLite propio1/1, 0 skips.
+- Este commit final solo actualiza documentación/checklist; su HEAD exacto y gates repetidos se consignan en Kanban antes de liberar QA.

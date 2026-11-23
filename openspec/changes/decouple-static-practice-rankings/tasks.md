@@ -8,4 +8,4 @@
 ## 3. Verificación y entrega
 - [x] 3.1 Ejecutar regresiones Node, Chromium práctica, cliente/interfaz y E2E SQLite/API del propio candidato sin omisiones (31/31, 12/12 repetición, 11/11, 1/1).
 - [x] 3.2 Ejecutar pruebas HTTP Python y gates OpenSpec, guardar evidencia y commit limpio con trailer (Python22/22, global10/10, guard7/7; evidencia STATIC_PRACTICE_TEST_RESULTS.md).
-- [ ] 3.3 Validar rango final, ancestros y limpieza; entregar SHA/ruta a QA sin integrar ni desplegar.
+- [x] 3.3 Validar rango del candidato de código 6191592, ancestros y limpieza; preparar handoff SHA/ruta a QA sin integrar ni desplegar (resultado estructurado de t_04412c35 y comentario en t_ad651c3c; el commit documental final se revalida antes del cierre).
