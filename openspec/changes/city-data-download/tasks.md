@@ -13,4 +13,4 @@
 
 ## 4. Verificación y entrega
 - [x] 4.1 Ejecutar unitarias/GIS, npm, navegador, HTTP, hashes y gates OpenSpec/guard/diff.
-- [ ] 4.2 Revisar diff staged, commitear con trailer, confirmar worktree limpio y entregar hashes a QA hija.
+- [x] 4.2 Revisar diff staged, commitear con trailer, confirmar worktree limpio y preparar handoff con hashes a QA hija (implementación ff3711d; evidencia en CITY_DOWNLOAD_VERIFICATION.md, QA/integración pendientes).
