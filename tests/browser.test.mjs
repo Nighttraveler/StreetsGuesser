@@ -205,6 +205,35 @@ test('arrastre interrumpe el zoom animado sin saltos posteriores', async () => {
   } finally { await context.close(); }
 });
 
+test('alias cortos de todas las rutas reales por Enter conservan nombre canónico y número exacto', async () => {
+  const easy = data.filter(s => s.nivel === 1);
+  for (const street of easy.filter(s => /ruta/i.test(s.nombre))) {
+    const number = street.nombre.match(/\d+$/)[0];
+    for (const answer of [`ruta ${number}`, `ex ruta ${number}`]) {
+      const { context, page, errors, external } = await openPage({ reducedMotion: 'reduce' });
+      try {
+        await page.addInitScript(value => { Math.random = () => value; }, (easy.indexOf(street) + .1) / easy.length);
+        await ready(page);
+        assert.equal((await activeStreet(page)).nombre, street.nombre);
+        for (const wrong of [`ruta ${number}0`, `ex ruta ${number}0`, `ruta ${number === '8' ? '51' : '8'}`]) {
+          await page.locator('#answer').fill(wrong);
+          await page.locator('#answer').press('Enter');
+          assert.equal(await page.locator('#score').innerText(), '0');
+          assert.match(await page.locator('#feedback').innerText(), /Todavía no/);
+        }
+        await page.locator('#answer').fill(answer);
+        await page.locator('#answer').press('Enter');
+        assert.equal(await page.locator('#score').innerText(), '10');
+        assert.equal(await page.locator('#feedback').innerText(), `¡Bien! Es ${street.nombre}. +10 puntos.`);
+        assert.equal((await activeStreet(page)).nombre, street.nombre);
+        assert.ok(await page.locator('#answer').isDisabled());
+        assert.deepEqual(errors, []);
+        assert.deepEqual(external, []);
+      } finally { await context.close(); }
+    }
+  }
+});
+
 test('HTTP real: mapa, controles, Enter, alias, puntos, error, pista y salto persistente', async () => {
   const { context, page, errors, external } = await openPage({ viewport: { width: 1280, height: 1000 }, reducedMotion: 'reduce' });
   try {

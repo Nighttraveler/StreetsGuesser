@@ -46,6 +46,40 @@ test('alias Merlassino explícito, nombres originales y rechazos', () => {
   assert.ok(matchesAnswer('Dr. Ricardo Gutierrez', streets.find(s => s.nombre === 'Ricardo Gutiérrez')));
   assert.ok(matchesAnswer('variante', { nombre: 'Nombre', nombres_originales: ['Variante'] }));
 });
+test('alias cortos generales para todas las rutas reales sin mutar sus registros', () => {
+  const routes = streets.filter(s => /ruta/i.test(s.nombre));
+  assert.equal(routes.length, 3);
+  for (const street of routes) {
+    const before = structuredClone(street);
+    const number = street.nombre.match(/\d+$/)[0];
+    for (const answer of [street.nombre, ...street.nombres_originales, `ruta ${number}`, `ex ruta ${number}`, `Ex-Ruta ${number}`, `  RÚTA   ${number}  `]) {
+      assert.equal(matchesAnswer(answer, street), true, `${answer} → ${street.nombre}`);
+    }
+    for (const answer of ['', number, `ruta ${number}0`, `ex ruta ${number}0`, `ruta ${number} extra`, `otra ruta ${number}`, `ruta ${number.slice(0, -1)}`]) {
+      assert.equal(matchesAnswer(answer, street), false, `${answer} ≠ ${street.nombre}`);
+    }
+    for (const other of routes.filter(s => s !== street)) {
+      assert.equal(matchesAnswer(`ruta ${other.nombre.match(/\d+$/)[0]}`, street), false);
+    }
+    assert.deepEqual(street, before);
+  }
+});
+test('rutas de otros números y nombres originales sin alias parciales o calificadores inventados', () => {
+  for (const number of ['7', '80', '510', '1234']) {
+    for (const prefix of ['Ruta', 'Ruta Nacional', 'Ex-Ruta Provincial', 'Ex Ruta Nacional']) {
+      const street = { nombre: `${prefix} ${number}` };
+      assert.equal(matchesAnswer(`ruta ${number}`, street), true);
+      assert.equal(matchesAnswer(`ex ruta ${number}`, street), true);
+      assert.equal(matchesAnswer(`ruta ${number.slice(0, -1)}`, street), false);
+    }
+  }
+  assert.equal(matchesAnswer('ruta 22', { nombre: 'Acceso', nombres_originales: ['Ex-Ruta Nacional 22'] }), true);
+  for (const nombre of ['Camino a Ruta Nacional 8', 'Ruta Nacional 8 bis', 'Ruta Municipal 8', 'Calle 8', 'Ruta Nacional 80']) {
+    assert.equal(matchesAnswer('ruta 8', { nombre }), false);
+  }
+  assert.equal(matchesAnswer('ruta provincial 8', { nombre: 'Ex-Ruta Nacional 8' }), false);
+  assert.equal(matchesAnswer('ruta nacional 51', { nombre: 'Ruta Provincial 51' }), false);
+});
 test('selección exacta por nivel y extremos aleatorios con dataset real', () => {
   for (const [level, count] of [[1, 15], [2, 13], [3, 145]]) {
     const pool = streets.filter(s => s.nivel === level);

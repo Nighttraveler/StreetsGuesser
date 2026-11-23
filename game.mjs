@@ -19,6 +19,11 @@ export function matchesAnswer(answer, street) {
   if (!normalized) return false;
   const names = [street.nombre, ...(street.nombres_originales ?? [])];
   if (names.some(name => normalizeName(name) === normalized)) return true;
+  const routeAlias = normalized.match(/^(?:ex[- ])?ruta (\d+)$/u);
+  if (routeAlias && names.some(name => {
+    const route = normalizeName(name).match(/^(?:ex[- ])?ruta (?:(?:nacional|provincial) )?(\d+)$/u);
+    return route?.[1] === routeAlias[1];
+  })) return true;
   return ['carlos merlassino', 'merlassino'].includes(normalizeName(street.nombre))
     && normalized === 'merlassino';
 }
