@@ -1,0 +1,72 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
+import { createInterface } from 'node:readline';
+import { copyFile, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
+import { chromium } from 'playwright';
+
+const root = new URL('../', import.meta.url);
+
+test('real static five-asset server: practice round works without rankings modules or API', async () => {
+  const temporary = await mkdtemp(join(process.env.TMPDIR || tmpdir(), 'static-practice-'));
+  let server, browser;
+  try {
+    const dockerfile = await readFile(new URL('Dockerfile', root), 'utf8');
+    const assets = dockerfile.match(/^COPY (.+) \/srv\/arrecifes\/public\/$/m)[1].split(' ');
+    assert.deepEqual([...assets].sort(), ['app.mjs', 'arrecifes_calles.json', 'game.mjs', 'index.html', 'styles.css']);
+    for (const asset of assets) await copyFile(new URL(asset, root), join(temporary, asset));
+    assert.deepEqual((await readdir(temporary)).sort(), [...assets].sort());
+    // Import the actual production handler; only the bind port and asset directory differ.
+    server = spawn('python3', ['-B', '-u', '-c',
+      'from pathlib import Path; import sys; from serve_static import StaticServer; server = StaticServer(("127.0.0.1", 0), Path(sys.argv[1])); print(server.server_port, flush=True); server.serve_forever()', temporary],
+    { cwd: fileURLToPath(root), stdio: ['ignore', 'pipe', 'pipe'] });
+    let logs = '';
+    server.stderr.on('data', chunk => { logs += chunk; });
+    const lines = createInterface({ input: server.stdout });
+    const port = await Promise.race([
+      once(lines, 'line').then(([line]) => Number(line)),
+      once(server, 'exit').then(([code]) => { throw new Error(`Static server exited ${code}: ${logs}`); }),
+    ]);
+    const origin = `http://127.0.0.1:${port}`;
+    for (const path of ['/rankings-ui.mjs', '/ranked-game-client.mjs', '/api/v1/cities', '/package.json', '/serve_static.py', '/.env', '/tests/', '/missing']) {
+      assert.equal((await fetch(`${origin}${path}`)).status, 404, path);
+    }
+    browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+    const page = await browser.newPage({ reducedMotion: 'reduce' });
+    const errors = [], apiRequests = [], external = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('request', request => {
+      if (new URL(request.url()).pathname.startsWith('/api/')) apiRequests.push(request.url());
+      if (!request.url().startsWith(origin)) external.push(request.url());
+    });
+    await page.goto(origin);
+    await page.locator('#answer:enabled').waitFor({ timeout: 5000 });
+    assert.ok(await page.locator('#map path.road').count() > 0);
+    await page.locator('#catalog-status').filter({ hasText: 'Clasificado no disponible' }).waitFor();
+    assert.equal(await page.locator('#catalog-load').isDisabled(), true);
+    const data = JSON.parse(await readFile(new URL('arrecifes_calles.json', root)));
+    const index = Number(await page.locator('g:has(path.active)').getAttribute('data-street-index'));
+    await page.locator('#answer').fill(data[index].nombre);
+    await page.locator('#submit').click();
+    assert.equal(await page.locator('#progress').innerText(), '1/15');
+    assert.equal(await page.locator('#score').innerText(), '10');
+    assert.match(await page.locator('#feedback').innerText(), /¡Bien!/);
+    await page.locator('#next').click();
+    assert.equal(await page.locator('#answer').isEnabled(), true);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(apiRequests, []);
+    assert.deepEqual(external, []);
+  } finally {
+    await browser?.close();
+    if (server && server.exitCode === null) {
+      const exited = once(server, 'exit');
+      server.kill('SIGTERM');
+      await exited;
+    }
+    await rm(temporary, { recursive: true, force: true });
+  }
+});

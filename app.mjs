@@ -1,5 +1,5 @@
 import { selectStreet, matchesAnswer, initialState, updateState, hintFor, isMapDrag, panView, streetId, getProgress, nextLevel } from './game.mjs';
-import { mountRankings } from './rankings-ui.mjs';
+
 
 const byId = id => document.getElementById(id);
 const map = byId('map');
@@ -20,7 +20,8 @@ let projected = [];
 let drag;
 let suppressMapClick = false;
 let rankedView, rankedBusy = false, practiceStreets = [];
-const rankings = mountRankings({
+let rankings;
+const rankingsCallbacks = {
   showGame(game, dataset) {
     if (!validDataset(dataset)) throw new Error('Formato de calles inválido');
     const selected = dataset.find(street => streetId(street) === game.round?.street_id);
@@ -53,7 +54,7 @@ const rankings = mountRankings({
     nextRound();
   },
   setBusy(value) { rankedBusy = value; renderState(); },
-});
+};
 
 function stopDrag() {
   drag = undefined;
@@ -328,3 +329,10 @@ async function load() {
 }
 byId('retry').addEventListener('click', load);
 load();
+// Optional modules must never gate the five-asset practice application.
+import('./rankings-ui.mjs').then(({ mountRankings }) => {
+  rankings = mountRankings(rankingsCallbacks);
+}).catch(() => {
+  byId('catalog-status').textContent = 'Clasificado no disponible. Podés jugar en práctica.';
+  byId('catalog-load').disabled = true;
+});
