@@ -50,6 +50,15 @@ button[hidden] { display: none; }
 .feedback.error { color: #ffb7a5; }
 .rules { color: var(--muted); font-size: 11px; line-height: 1.7; margin: 18px 0 0; }
 footer { display: flex; justify-content: space-between; gap: 14px; color: #95a6b0; font-size: 11px; padding-top: 18px; }
+.rankings-panel { padding: 20px; margin: 20px 0; border: 1px solid #34434b; border-radius: 18px; background: #17252e; overflow-wrap: anywhere; }
+.rankings-panel p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+.ranking-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.ranking-filters label { display: grid; gap: 8px; }
+.consent { display: flex; align-items: center; gap: 10px; margin: 16px 0; }
+.consent input { width: 22px; height: 22px; margin: 0; flex-shrink: 0; }
+#ranking-list { padding-left: 28px; }
+#ranking-list li { padding: 8px; }
+[hidden] { display: none !important; }
 @media (min-width: 1500px) { main { padding-top: 55px; } }
 @media (max-width: 760px) { main { padding: 22px 12px 18px; } .masthead { margin-bottom: 20px; } .intro { display: none; } .game { grid-template-columns: 1fr; } .map-panel { min-height: 360px; height: 43svh; max-height: 520px; } #map { min-height: 250px; } .play-panel { border-left: none; border-top: 1px solid #34434b; padding: 22px; } .stats { margin-bottom: 20px; padding: 14px 0; } .map-heading { inset: 14px 14px auto; } .map-tools { left: 10px; bottom: 54px; gap: 4px; } .map-tools button { padding: 8px 10px; } footer { flex-direction: column; gap: 6px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }

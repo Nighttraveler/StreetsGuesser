@@ -4,9 +4,12 @@
   "private": true,
   "description": "Juego estático local con datos reales OSM; Playwright solo para pruebas",
   "scripts": {
-    "test": "node --test tests/game.test.mjs",
-    "test:functional": "node --test tests/browser.test.mjs"
+    "test": "node --experimental-sqlite --test tests/game.test.mjs tests/sqlite-runtime.test.mjs tests/rankings.test.mjs",
+    "test:functional": "node --test tests/browser.test.mjs",
+    "test:rankings": "node --experimental-sqlite --test tests/sqlite-runtime.test.mjs tests/rankings.test.mjs",
+    "start:rankings": "node --experimental-sqlite ranked-game/server.mjs"
   },
+  "engines": { "node": ">=22.22.0" },
   "devDependencies": {
     "playwright": "1.58.2"
   }

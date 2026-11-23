@@ -1,4 +1,5 @@
 import { selectStreet, matchesAnswer, initialState, updateState, hintFor, isMapDrag, panView, streetId, getProgress, nextLevel } from './game.mjs';
+import { mountRankings } from './rankings-ui.mjs';
 
 const byId = id => document.getElementById(id);
 const map = byId('map');
@@ -18,6 +19,41 @@ let animation;
 let projected = [];
 let drag;
 let suppressMapClick = false;
+let rankedView, rankedBusy = false, practiceStreets = [];
+const rankings = mountRankings({
+  showGame(game, dataset) {
+    if (!validDataset(dataset)) throw new Error('Formato de calles inválido');
+    const selected = dataset.find(street => streetId(street) === game.round?.street_id);
+    if (!selected) throw new Error('La ronda no pertenece al snapshot del servidor.');
+    rankedView = game;
+    streets = dataset;
+    level.value = String(game.difficulty);
+    current = selected;
+    drawMap();
+    const index = streets.indexOf(current);
+    groups[index].querySelectorAll('path').forEach(path => path.classList.add('active'));
+    map.append(groups[index]);
+    targetView = bounds(projected[index].flat(), Math.min(fullView[2], fullView[3]) / 6);
+    zoomTo(targetView);
+    answer.value = '';
+    byId('hint-text').textContent = game.round.hint_text || '';
+    document.querySelector('.map-town').textContent = game.city_id;
+    map.setAttribute('aria-label', `Mapa mudo de ${game.city_id}. Calle a adivinar resaltada en verde.`);
+    controls.forEach(id => { byId(id).disabled = false; });
+    message(game.status === 'completed' ? `Nivel completado. ${game.score} puntos confirmados por el servidor.` : game.round.revealed_name || 'Modo clasificado: respuesta evaluada por el servidor.');
+    renderState();
+  },
+  practice() {
+    rankedView = undefined;
+    streets = practiceStreets;
+    state = initialState();
+    if (!streets.length) { load(); return; }
+    drawMap();
+    document.querySelector('.map-town').textContent = 'ARRECIFES, BA';
+    nextRound();
+  },
+  setBusy(value) { rankedBusy = value; renderState(); },
+});
 
 function stopDrag() {
   drag = undefined;
@@ -70,6 +106,24 @@ function focusCompletion() {
   (byId('advance').hidden ? level : byId('advance')).focus();
 }
 function renderState() {
+  if (rankedView) {
+    const active = rankedView.status === 'active';
+    const unavailable = rankedBusy || !active || rankedView.round.resolved;
+    byId('progress').textContent = `${rankedView.progress.correct}/${rankedView.progress.total}`;
+    byId('progress-note').hidden = false;
+    byId('score').textContent = rankedView.score;
+    byId('streak').textContent = rankedView.streak;
+    answer.disabled = unavailable;
+    byId('submit').disabled = unavailable;
+    byId('hint').disabled = unavailable || rankedView.round.hinted;
+    byId('skip').disabled = unavailable;
+    byId('next').hidden = !active || !rankedView.round.resolved;
+    byId('next').disabled = rankedBusy;
+    byId('advance').hidden = true;
+    level.disabled = rankedBusy;
+    byId('level-note').textContent = `${rankedView.progress.total} calles · clasificado ${rankedView.city_id}`;
+    return;
+  }
   const { correct, total, completed } = getProgress(streets, level.value, state);
   byId('progress').textContent = `${correct}/${total}`;
   byId('progress-note').hidden = false;
@@ -84,6 +138,7 @@ function renderState() {
   byId('hint').disabled = unavailable || state.hinted;
   byId('skip').disabled = unavailable;
   byId('next').hidden = !state.resolved || completed || !current;
+  byId('next').disabled = false;
 }
 function setView(box) {
   view = box;
@@ -167,6 +222,7 @@ function nextRound() {
 }
 byId('answer-form').addEventListener('submit', event => {
   event.preventDefault();
+  if (rankedView) { if (answer.value.trim()) rankings.action('answer', answer.value); return; }
   if (!current || state.resolved || !answer.value.trim()) return;
   const correct = matchesAnswer(answer.value, current);
   state = updateState(state, correct ? 'correct' : 'wrong', current);
@@ -185,12 +241,14 @@ byId('answer-form').addEventListener('submit', event => {
   }
 });
 byId('hint').addEventListener('click', () => {
+  if (rankedView) { rankings.action('hint'); return; }
   if (!current || state.resolved) return;
   state = updateState(state, 'hint');
   byId('hint-text').textContent = hintFor(current);
   renderState();
 });
 byId('skip').addEventListener('click', () => {
+  if (rankedView) { rankings.action('skip'); return; }
   if (!current || state.resolved) return;
   state = updateState(state, 'skip');
   message(`La respuesta es: ${current.nombre}. Mirá el recorrido; avanzá cuando quieras.`);
@@ -198,11 +256,19 @@ byId('skip').addEventListener('click', () => {
   byId('next').focus();
 });
 byId('next').addEventListener('click', () => {
+  if (rankedView) { rankings.action('next'); return; }
   if (!state.resolved) return;
   nextRound();
   answer.focus();
 });
 function changeLevel() {
+  if (rankedView) {
+    const requested = level.value;
+    level.value = String(rankedView.difficulty);
+    const option = [...byId('rank-difficulty').options].find(item => item.value === requested);
+    if (option) { byId('rank-difficulty').value = requested; rankings.changeDifficulty(); }
+    return;
+  }
   state = initialState(state.solvedByLevel);
   nextRound();
   if (current) {
@@ -247,6 +313,8 @@ async function load() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     if (!validDataset(data)) throw new Error('Formato de calles inválido');
+    practiceStreets = data;
+    if (rankedView) return;
     streets = data;
     drawMap();
     controls.forEach(id => { byId(id).disabled = false; });

@@ -10,6 +10,7 @@ const files = new Map([
   ['/', ['index.html', 'text/html']], ['/index.html', ['index.html', 'text/html']],
   ['/styles.css', ['styles.css', 'text/css']], ['/app.mjs', ['app.mjs', 'text/javascript']],
   ['/game.mjs', ['game.mjs', 'text/javascript']], ['/arrecifes_calles.json', ['arrecifes_calles.json', 'application/json']],
+  ['/rankings-ui.mjs', ['rankings-ui.mjs', 'text/javascript']], ['/ranked-game-client.mjs', ['ranked-game-client.mjs', 'text/javascript']],
 ]);
 let server, browser, origin;
 before(async () => {

@@ -51,6 +51,39 @@
         <p class="rules">Acierto: +10 · Con pista: +5<br>Error o salto: racha a cero. Cambiar de nivel reinicia los marcadores.</p>
       </div>
     </section>
+    <section class="rankings-panel" aria-labelledby="ranked-heading">
+      <h2 id="ranked-heading">Jugá y compará</h2>
+      <p>La práctica es local y no se publica. El modo clasificado empieza desde cero con puntos confirmados por el servidor.</p>
+      <button id="catalog-load" type="button">Cargar ciudades y clasificación</button>
+      <p id="catalog-status" role="status" aria-live="polite"></p>
+      <div class="ranking-filters">
+        <label>Ciudad <select id="rank-city" disabled></select></label>
+        <label>Dificultad <select id="rank-difficulty" disabled></select></label>
+        <button id="rank-start" type="button" disabled>Jugar clasificado</button>
+        <button id="practice" type="button">Volver a práctica</button>
+      </div>
+      <p id="ranked-status" role="status" aria-live="polite">Modo práctica</p>
+      <button id="ranked-retry" type="button" hidden>Reintentar operación pendiente</button>
+      <h3>Clasificación actual</h3>
+      <p>Las posiciones pueden cambiar entre páginas.</p>
+      <button id="rank-refresh" type="button" disabled>Refrescar desde el inicio</button>
+      <p id="ranking-status" role="status" aria-live="polite"></p>
+      <ol id="ranking-list"></ol>
+      <button id="rank-more" type="button" hidden>Página siguiente</button>
+    </section>
+    <section id="publication" class="rankings-panel" hidden aria-labelledby="publication-heading">
+      <h2 id="publication-heading">Publicar resultado</h2>
+      <p id="publication-result"></p>
+      <p>Tu nombre será público, global e inmutable. Tu identidad está ligada a la cookie de este navegador: borrarla pierde acceso a tu nombre y partidas. Compartir navegador comparte identidad.</p>
+      <form id="publication-form">
+        <label for="username">Nombre de usuario</label>
+        <input id="username" name="username" required maxlength="64" autocomplete="off" aria-describedby="username-help publication-status">
+        <p id="username-help">Entre 3 y 20 letras ASCII, números o guion bajo. Solo el servidor confirma el nombre al publicar.</p>
+        <label class="consent"><input id="publish-consent" type="checkbox" required> Acepto publicar mi nombre y resultado.</label>
+        <button id="publish" type="submit">Publicar resultado</button>
+      </form>
+      <p id="publication-status" role="status" aria-live="polite"></p>
+    </section>
     <footer>Hecho para mirar la ciudad de otra manera. <span>Sin etiquetas. Sin apuro.</span></footer>
     <noscript>Necesitás activar JavaScript para cargar el mapa y jugar.</noscript>
   </main>
