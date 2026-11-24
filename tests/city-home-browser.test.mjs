@@ -66,6 +66,45 @@ test('home is isolated; keyboard navigation, direct game entry, reload and retur
   } finally { await context.close(); }
 });
 
+test('dashboard reflows, labels its illustration and has a visible keyboard path to Jugar', async () => {
+  for (const width of [320, 375, 768, 1280]) {
+    const { page, context, errors, requests } = await open({ width, height: 900 });
+    try {
+      await page.goto(origin);
+      assert.equal(await page.getByRole('heading', { level: 1 }).count(), 1);
+      assert.equal(await page.locator('.dashboard > section').count(), 5);
+      assert.match(await page.locator('figcaption').innerText(), /Esquema ilustrativo/);
+      assert.equal(await page.locator('#como-jugar li').count(), 3);
+      for (const size of ['100%', '200%']) {
+        await page.evaluate(size => { document.documentElement.style.fontSize = size; }, size);
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width} / ${size}`);
+        assert.ok(await page.locator('main, section, h1, p, a').evaluateAll(nodes => nodes.every(node => node.scrollWidth <= node.clientWidth + 1)));
+      }
+      await page.evaluate(() => { document.documentElement.style.fontSize = ''; });
+      const links = page.getByRole('link');
+      // Begin at the document, exercising actual sequential navigation, not focus().
+      await page.reload();
+      for (let index = 0; index < await links.count(); index++) {
+        await page.keyboard.press('Tab');
+        assert.ok(await links.nth(index).evaluate(link => link === document.activeElement && link.matches(':focus-visible') && getComputedStyle(link).outlineStyle !== 'none'));
+      }
+      assert.ok(requests.every(request => ['/', '/styles.css'].includes(new URL(request.url()).pathname)));
+      const cta = page.getByRole('link', { name: 'Jugar', exact: true });
+      assert.ok((await cta.boundingBox()).height >= 44);
+      await mkdir(screenshots, { recursive: true });
+      await page.screenshot({ path: new URL(`dashboard-${width}.png`, screenshots).pathname, fullPage: true });
+      await cta.press('Enter');
+      await page.locator('#answer:enabled').waitFor();
+      assert.equal(new URL(page.url()).pathname, '/play.html');
+      await page.reload();
+      await page.locator('#answer:enabled').waitFor();
+      await page.getByRole('link', { name: 'Volver a la portada' }).click();
+      assert.equal(await page.locator('#map, script, form').count(), 0);
+      assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+  }
+});
+
 test('game uses real catalog, same selector, read-only visit and responsive layout', async () => {
   for (const viewport of [{ width: 375, height: 812 }, { width: 1280, height: 1000 }]) {
     const { page, context, errors, requests } = await open(viewport);

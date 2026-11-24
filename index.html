@@ -7,22 +7,120 @@
   <meta name="description" content="Reconocé las calles de Arrecifes en un mapa mudo. Un juego de memoria con datos de OpenStreetMap.">
   <title>Arrecifes · De memoria</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./styles.css">
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; color: #edf2ed; background: #101a22; --accent: #cefa69; --muted: #adbbc3; --line: #364651; --surface: #17252e; }
+    * { box-sizing: border-box; }
+    body { margin: 0; line-height: 1.6; }
+    a { color: inherit; text-underline-offset: .25em; }
+    a:hover { color: var(--accent); }
+    a:focus-visible, main:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+    .shell { max-width: 1240px; margin: auto; padding: 0 28px; }
+    .skip { position: absolute; left: 16px; top: -200px; padding: 12px; background: var(--accent); color: #101a22; z-index: 2; }
+    .skip:focus { top: 12px; color: #101a22; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 22px; border-bottom: 1px solid var(--line); }
+    .brand { display: flex; gap: 12px; align-items: center; font-weight: 700; letter-spacing: -.03em; }
+    .brand-mark { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--accent); color: var(--accent); font-family: ui-monospace, monospace; }
+    .brand small { color: var(--muted); font-weight: 400; }
+    nav { display: flex; gap: 24px; flex-wrap: wrap; }
+    nav a { display: inline-flex; align-items: center; min-height: 44px; font-size: .875rem; }
+    main { padding-block: 24px; }
+    .section-line { display: flex; gap: 12px; justify-content: space-between; flex-wrap: wrap; margin-bottom: 16px; }
+    .label { font: .75rem/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 0; }
+    .section-line .label:first-child { color: var(--accent); }
+    .dashboard { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, .9fr); gap: 14px; }
+    .dashboard > section { min-width: 0; border: 1px solid var(--line); border-radius: 10px; padding: 24px; background: var(--surface); overflow-wrap: anywhere; }
+    .welcome { grid-column: span 2; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .65fr); gap: 24px; align-items: center; }
+    .welcome .label { color: var(--accent); }
+    h1 { font-size: clamp(2rem, 4vw, 3.5rem); line-height: 1.08; letter-spacing: -.055em; margin: 18px 0; }
+    h1 span { color: var(--accent); }
+    h2 { font-size: 1.25rem; line-height: 1.3; letter-spacing: -.025em; margin: 10px 0 16px; }
+    h3 { font-size: 1rem; line-height: 1.4; margin: 0 0 4px; }
+    p { margin: 0 0 14px; }
+    .description, .detail, li p, dd { color: var(--muted); font-size: .875rem; }
+    .description { font-size: 1rem; }
+    .cta { display: inline-flex; justify-content: space-between; align-items: center; gap: 40px; min-height: 48px; padding: 10px 22px; margin: 10px 0 12px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: #172314; font-weight: 750; text-decoration: none; }
 
+    .cta:hover { color: #172314; background: #e0ff9d; }
+    .detail { margin: 0; }
+    figure { margin: 0; min-width: 0; }
+    .street-scheme { position: relative; height: 220px; border: 1px solid var(--line); border-radius: 6px; background: repeating-linear-gradient(0deg, transparent 0 35px, #425461 36px 37px, transparent 38px 40px), repeating-linear-gradient(90deg, #101d26 0 35px, #425461 36px 37px, #101d26 38px 40px); }
+    .street-scheme::before { content: ''; position: absolute; left: 18%; top: 20%; width: 64%; height: 60%; border-left: 5px solid var(--accent); border-bottom: 5px solid var(--accent); border-radius: 0 0 0 6px; }
+    .street-scheme::after { content: '?'; position: absolute; inset: 32% auto auto 42%; color: var(--accent); background: #101d26; border: 1px solid var(--line); padding: 0 12px; font: 2rem/1.5 ui-monospace, monospace; }
+    figcaption { color: var(--muted); font-size: .75rem; margin-top: 10px; }
+    dl { margin: 0; }
+    dl > div { border-top: 1px solid var(--line); padding: 12px 0; }
+    dt { font-size: .75rem; color: var(--muted); }
+    dd { margin: 2px 0 0; color: #edf2ed; font-size: .9375rem; }
+    ol { list-style: none; counter-reset: steps; margin: 0; padding: 0; }
+    li { counter-increment: steps; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+    li::before { content: '0' counter(steps); font: .75rem/1.8 ui-monospace, monospace; color: var(--accent); }
+    li p { margin: 0; }
+    .mode + .mode { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .mode p { margin: 0; color: var(--muted); font-size: .875rem; }
+    .data-note { border-left: 2px solid var(--accent); padding-left: 14px; margin-top: 20px; }
+    footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-block: 0 22px; color: var(--muted); font-size: .75rem; }
+    @media (max-width: 980px) { .dashboard { grid-template-columns: repeat(2, minmax(0, 1fr)); } .welcome { grid-column: 1 / -1; } }
+    @media (max-width: 600px) { .shell { padding-inline: 16px; } .topbar { align-items: flex-start; flex-direction: column; gap: 8px; padding-block: 16px; } nav { gap: 20px; } .dashboard, .welcome { grid-template-columns: minmax(0, 1fr); } .dashboard > section { padding: 20px; } .street-scheme { height: 160px; } .cta { width: 100%; } .section-line { gap: 4px; } }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+  </style>
 </head>
 <body>
-  <main>
-    <header class="masthead">
-      <div><p class="eyebrow">UN MAPA. TU CIUDAD.</p><h1>Arrecifes <span>de memoria</span></h1></div>
-      <p class="intro">¿Cuánto conocés tus calles?<br>Encontrá el nombre detrás del trazo.</p>
-    </header>
-    <section aria-labelledby="start-heading">
-      <h2 id="start-heading">Reconocé tu ciudad</h2>
-      <p>Un mapa sin nombres, una calle resaltada y tu memoria. Elegí una dificultad y probá cuánto conocés.</p>
-      <a href="./play.html">Jugar</a>
-    </section>
-    <footer>Hecho para mirar la ciudad de otra manera. <span>Sin etiquetas. Sin apuro.</span></footer>
-
+  <a class="skip" href="#contenido">Saltar al contenido</a>
+  <div class="shell">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">dm</span><div>Arrecifes <small> / de memoria</small></div></div>
+    <nav aria-label="En esta portada"><a href="#como-jugar">Cómo jugar</a><a href="#modos">Modos de juego</a></nav>
+  </header>
+  <main id="contenido" tabindex="-1">
+    <div class="section-line"><p class="label">Explorá tu memoria urbana</p><p class="label">Calles reales · mapa sin nombres</p></div>
+    <div class="dashboard">
+      <section class="welcome" aria-labelledby="welcome-heading">
+        <div>
+          <p class="label">Un mapa. Tu ciudad.</p>
+          <h1 id="welcome-heading">La conocés.<br><span>¿La recordás?</span></h1>
+          <p class="description">Reconocé las calles de Arrecifes por su trazo. Un mapa sin nombres, una calle resaltada y tu memoria para encontrar la respuesta.</p>
+          <a class="cta" href="./play.html">Jugar</a>
+          <p class="detail">El juego se abre en su propia página.</p>
+        </div>
+        <figure>
+          <div class="street-scheme" aria-hidden="true"></div>
+          <figcaption>Esquema ilustrativo de la mecánica. No es un mapa real ni una partida activa.</figcaption>
+        </figure>
+      </section>
+      <section aria-labelledby="overview-heading">
+        <p class="label">Ficha del juego</p>
+        <h2 id="overview-heading">Tu ciudad, sin etiquetas</h2>
+        <dl>
+          <div><dt>Escenario de práctica</dt><dd>Arrecifes, Buenos Aires</dd></div>
+          <div><dt>El desafío</dt><dd>Recordar el nombre de la calle resaltada</dd></div>
+          <div><dt>A tu medida</dt><dd>Dificultad elegible dentro del juego</dd></div>
+          <div><dt>Para orientarte</dt><dd>Mapa con zoom y arrastre</dd></div>
+        </dl>
+      </section>
+      <section id="como-jugar" aria-labelledby="steps-heading">
+        <p class="label">Guía rápida</p>
+        <h2 id="steps-heading">Del trazo al nombre</h2>
+        <ol>
+          <li><div><h3>Elegí la dificultad</h3><p>Entrá al juego y empezá por el nivel que prefieras.</p></div></li>
+          <li><div><h3>Ubicá la calle</h3><p>Mirá el trazo resaltado. Mové el mapa o acercate para orientarte.</p></div></li>
+          <li><div><h3>Escribí su nombre</h3><p>Comprobá tu respuesta y seguí con otra calle. En práctica podés pedir una pista.</p></div></li>
+        </ol>
+      </section>
+      <section id="modos" aria-labelledby="modes-heading">
+        <p class="label">Formas de jugar</p>
+        <h2 id="modes-heading">Practicá. Después, desafiate.</h2>
+        <div class="mode"><h3>Práctica</h3><p>Jugá con el mapa local, pedí pistas y descubrí cuánto recordás. No necesitás publicar un resultado.</p></div>
+        <div class="mode"><h3>Clasificado</h3><p>Disponible cuando el servidor de rankings está habilitado. Elegí ciudad y dificultad en el juego y compará resultados en su clasificación.</p></div>
+      </section>
+      <section id="datos" aria-labelledby="data-heading">
+        <p class="label">Detrás del mapa</p>
+        <h2 id="data-heading">Geografía real. Memoria propia.</h2>
+        <p class="description">El juego usa trazados de OpenStreetMap, no calles inventadas. Las etiquetas desaparecen; la forma de la ciudad queda.</p>
+        <p class="detail data-note">Esta portada es una guía: el catálogo de ciudades, el mapa y tus resultados se consultan dentro del juego.</p>
+      </section>
+    </div>
   </main>
+  <footer><span>Hecho para mirar la ciudad de otra manera.</span><span>Datos: <a href="https://www.openstreetmap.org/copyright">© colaboradores de OpenStreetMap</a></span></footer>
+  </div>
 </body>
 </html>
