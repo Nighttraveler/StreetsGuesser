@@ -36,7 +36,7 @@ test('real SQLite API + Chromium: two owners, full games, canonical conflict and
       const page = await context.newPage();
       const errors = [];
       page.on('pageerror', error => errors.push(error.message));
-      await page.goto(origin);
+      await page.goto(`${origin}/play.html`);
       await page.locator('#answer:enabled').waitFor();
       await page.locator('#catalog-load').click();
       await page.locator('#rank-start:enabled').click();

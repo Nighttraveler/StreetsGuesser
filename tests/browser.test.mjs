@@ -7,6 +7,7 @@ import { chromium } from 'playwright';
 const root = new URL('../', import.meta.url);
 const data = JSON.parse(await readFile(new URL('arrecifes_calles.json', root)));
 const files = new Map([
+  ['/play.html', ['play.html', 'text/html']],
   ['/', ['index.html', 'text/html']], ['/index.html', ['index.html', 'text/html']],
   ['/styles.css', ['styles.css', 'text/css']], ['/app.mjs', ['app.mjs', 'text/javascript']],
   ['/game.mjs', ['game.mjs', 'text/javascript']], ['/arrecifes_calles.json', ['arrecifes_calles.json', 'application/json']],
@@ -50,9 +51,9 @@ async function openPage(options = {}) {
   return { context, page, errors, external };
 }
 async function ready(page) {
-  await page.goto(origin);
+  await page.goto(`${origin}/play.html`);
   await page.locator('#answer:enabled').waitFor();
-  // The home now precedes the game; mouse coordinates must target the visible map.
+  // The city catalog precedes the game; coordinates must target the visible map.
   await page.locator('.game').scrollIntoViewIfNeeded();
 }
 async function activeStreet(page) {
@@ -605,14 +606,14 @@ test('IDs OSM inválidos o entidades duplicadas se rechazan antes de jugar', asy
     for (const ids of [undefined, [], [0], [-1], [1.5], ['123'], [Number.MAX_SAFE_INTEGER + 1]]) {
       const invalid = data.map((street, index) => index === 0 ? { ...street, osm_way_ids: ids } : street);
       await page.route('**/arrecifes_calles.json', route => route.fulfill({ json: invalid }));
-      await page.goto(origin);
+      await page.goto(`${origin}/play.html`);
       await page.locator('#retry:visible').waitFor();
       assert.match(await page.locator('#feedback').innerText(), /Formato de calles inválido/);
       assert.ok(await page.locator('#answer').isDisabled());
       await page.unroute('**/arrecifes_calles.json');
     }
     await page.route('**/arrecifes_calles.json', route => route.fulfill({ json: [...data, { ...data[0] }] }));
-    await page.goto(origin);
+    await page.goto(`${origin}/play.html`);
     await page.locator('#retry:visible').waitFor();
     assert.equal(await page.locator('#map path').count(), 0);
     assert.match(await page.locator('#feedback').innerText(), /Formato de calles inválido/);
@@ -645,7 +646,7 @@ test('error de carga visible y reintento recuperable sin inventar calles', async
   const { context, page } = await openPage();
   try {
     await page.route('**/arrecifes_calles.json', route => route.fulfill({ status: 503, body: 'Unavailable' }));
-    await page.goto(origin);
+    await page.goto(`${origin}/play.html`);
     await page.locator('#retry:visible').waitFor();
     assert.match(await page.locator('#feedback').innerText(), /HTTP 503/);
     assert.equal(await page.locator('#map path').count(), 0);

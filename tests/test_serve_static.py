@@ -33,10 +33,12 @@ class StaticServerTests(unittest.TestCase):
         finally:
             client.close()
 
-    def test_get_index_and_five_files_with_explicit_headers(self):
+    def test_get_home_game_and_six_files_with_explicit_headers(self):
         for path, file, mime in (
                 ("/", "index.html", "text/html"),
                 ("/index.html", "index.html", "text/html"),
+                ("/play.html", "play.html", "text/html"),
+                ("/play.html?direct=1", "play.html", "text/html"),
                 ("/styles.css", "styles.css", "text/css"),
                 ("/app.mjs", "app.mjs", "application/javascript"),
                 ("/game.mjs", "game.mjs", "application/javascript"),
@@ -51,8 +53,8 @@ class StaticServerTests(unittest.TestCase):
                 self.assertEqual(headers["Content-Length"], str(len(body)))
 
     def test_head_has_get_headers_and_no_body(self):
-        _, get_headers, _ = self.request("GET", "/game.mjs")
-        status, head_headers, body = self.request("HEAD", "/game.mjs")
+        _, get_headers, _ = self.request("GET", "/play.html")
+        status, head_headers, body = self.request("HEAD", "/play.html")
         self.assertEqual(status, 200)
         self.assertEqual(body, b"")
         for header in ("Content-Type", "Content-Length", "Cache-Control"):

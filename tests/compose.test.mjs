@@ -8,6 +8,7 @@ const origin = new URL(process.env.COMPOSE_SMOKE_ORIGIN || 'http://127.0.0.1:180
 assert.match(origin, /^http:\/\/127\.0\.0\.1:\d+$/, 'el smoke solo acepta un puerto HTTP loopback');
 const root = new URL('../', import.meta.url);
 const files = new Map([
+  ['play.html', 'text/html'],
   ['index.html', 'text/html'], ['styles.css', 'text/css'], ['app.mjs', 'application/javascript'],
   ['game.mjs', 'application/javascript'], ['arrecifes_calles.json', 'application/json'],
 ]);
@@ -53,7 +54,7 @@ test('Compose Chromium: módulos reales, mapa, niveles y acierto sin peticiones 
   try {
     const context = await browser.newContext({ viewport: { width: 375, height: 812 }, reducedMotion: 'reduce' });
     context.setDefaultTimeout(8000);
-    const errors = [], external = [], served = new Set();
+    const errors = [], external = [], served = new Set(), unavailableOptionalModules = [];
     await context.route('**/*', route => {
       const url = new URL(route.request().url());
       if (url.origin === origin) return route.continue();
@@ -62,12 +63,29 @@ test('Compose Chromium: módulos reales, mapa, niveles y acierto sin peticiones 
     });
     const page = await context.newPage();
     page.on('pageerror', error => errors.push(error.message));
-    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('response', response => { if (response.ok()) served.add(new URL(response.url()).pathname); });
+    page.on('console', message => {
+      if (message.type() !== 'error') return;
+      // The static image deliberately omits the optional rankings module.
+      if (message.location().url === `${origin}/rankings-ui.mjs` &&
+          message.text() === 'Failed to load resource: the server responded with a status of 404 (Not Found)') return;
+      errors.push(message.text());
+    });
+    page.on('response', response => {
+      if (response.ok()) served.add(new URL(response.url()).pathname);
+      if (new URL(response.url()).pathname === '/rankings-ui.mjs') unavailableOptionalModules.push(response.status());
+    });
     await page.addInitScript(() => { Math.random = () => 0; });
     assert.equal((await page.goto(origin)).status(), 200);
+    assert.equal(await page.locator('#map, script').count(), 0);
+    await page.getByRole('link', { name: 'Jugar', exact: true }).click();
+    await page.locator('#answer:enabled').waitFor();
+    await page.goto(`${origin}/play.html`);
+    await page.locator('#answer:enabled').waitFor();
+    await page.reload();
     await page.locator('#answer:enabled').waitFor();
     assert.equal(await page.locator('#map path').count(), 407);
+    await page.locator('#catalog-status').filter({ hasText: 'Clasificado no disponible' }).waitFor();
+    assert.deepEqual(unavailableOptionalModules, [404, 404, 404]);
     assert.match(await page.locator('.map-foot').innerText(), /OpenStreetMap contributors/);
     for (const level of [1, 2, 3]) {
       await page.locator('#level').selectOption(String(level));

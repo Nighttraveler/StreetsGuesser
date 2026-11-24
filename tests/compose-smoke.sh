@@ -130,10 +130,11 @@ docker image inspect -f 'Imagen {{.Id}} {{.Os}}/{{.Architecture}}' "$original"
 arrecifes_calles.json
 game.mjs
 index.html
+play.html
 styles.css"
   wget -q -O /dev/null http://127.0.0.1:8080/
 '
-printf '%s\n' 'Healthy, UID no-root, sin capacidades, rootfs RO, tmpfs 16 MiB y exactamente cinco archivos.'
+printf '%s\n' 'Healthy, UID no-root, sin capacidades, rootfs RO, tmpfs 16 MiB y exactamente seis archivos.'
 node --test tests/compose.test.mjs
 
 assert_dataset() {

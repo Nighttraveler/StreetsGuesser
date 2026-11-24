@@ -1,5 +1,7 @@
 # Arrecifes · De memoria
 
+Contrato vigente de rutas (t_2d0104cf): `/` y `/index.html` son portada independiente sin juego; el juego completo está en `/play.html`. Publicar también `play.html` (seis activos estáticos en total), además de los cinco históricos que se detallan abajo. Ver GAME_ROUTE.md para enlaces del landing, prueba local y publicación actual; las rutas del juego en evidencias históricas anteriores quedan sustituidas por `/play.html`.
+
 Entrega de implementación de t_edec234d. Revisión independiente y servidor persistente: t_a5e4f54c (QA).
 
 ## Entrada y archivos publicables

@@ -8,7 +8,7 @@
   <title>Arrecifes · De memoria</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="./styles.css">
-  <script type="module" src="./app.mjs"></script>
+
 </head>
 <body>
   <main>
@@ -16,85 +16,13 @@
       <div><p class="eyebrow">UN MAPA. TU CIUDAD.</p><h1>Arrecifes <span>de memoria</span></h1></div>
       <p class="intro">¿Cuánto conocés tus calles?<br>Encontrá el nombre detrás del trazo.</p>
     </header>
-    <section class="rankings-panel city-home" aria-labelledby="cities-heading">
-      <p class="eyebrow">EXPLORÁ EL CATÁLOGO</p>
-      <h2 id="cities-heading">Ciudades disponibles</h2>
-      <p>Elegí una ciudad para ver sus dificultades y su clasificación. Más abajo podés practicar con el mapa de Arrecifes.</p>
-      <p id="cities-status" role="status" aria-live="polite" aria-atomic="true">Cargando ciudades…</p>
-      <ul id="cities-list" class="city-list" role="list" aria-labelledby="cities-heading" aria-busy="true" hidden></ul>
-      <button id="cities-retry" type="button" disabled>Actualizar ciudades</button>
-      <noscript>Activá JavaScript para consultar las ciudades disponibles.</noscript>
-    </section>
-    <section class="game" aria-label="Juego de calles">
-      <div class="map-panel">
-        <div class="map-heading"><span class="live-dot"></span> MAPA MUDO <span class="map-town">ARRECIFES, BA</span></div>
-        <svg id="map" role="img" aria-label="Mapa mudo de Arrecifes. La calle a adivinar está resaltada en verde lima." viewBox="0 0 1000 800" preserveAspectRatio="xMidYMid meet"></svg>
-        <div class="map-tools" role="group" aria-label="Controles del mapa">
-          <button id="zoom-in" type="button" aria-label="Acercar mapa" disabled>+</button>
-          <button id="zoom-out" type="button" aria-label="Alejar mapa" disabled>−</button>
-          <button id="overview" type="button" disabled>Vista general</button>
-          <button id="locate" type="button" disabled>Ver calle</button>
-        </div>
-        <span class="north" aria-hidden="true">↑ N</span>
-        <div class="map-foot"><span><i></i> Calle a reconocer</span><span>© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a> · ODbL</span></div>
-      </div>
-      <div class="play-panel">
-        <div class="level-row"><label for="level">Elegí tu desafío</label><select id="level" disabled><option value="1">1 · Fácil</option><option value="2">2 · Medio</option><option value="3">3 · Difícil</option></select></div>
-        <p class="level-note" id="level-note">Cargando calles reales…</p>
-        <p class="level-note" id="progress-note" role="status" aria-live="polite" aria-atomic="true" hidden><span id="progress"></span> acertadas/total</p>
-        <div class="stats" aria-live="polite" aria-atomic="true"><div><span id="score">0</span><small>PUNTOS</small></div><div><span id="streak">0</span><small>RACHA</small></div></div>
-        <p class="eyebrow round-label">SEGUÍ EL TRAZO VERDE</p>
-        <h2>¿Qué calle es?</h2>
-        <p class="help">Escribí su nombre. No importan las tildes, las mayúsculas ni los prefijos comunes.</p>
-        <form id="answer-form">
-          <label for="answer">Nombre de la calle</label>
-          <input id="answer" name="answer" type="text" placeholder="Tu respuesta…" autocomplete="off" autocapitalize="words" spellcheck="false" maxlength="160" required disabled aria-describedby="feedback hint-text">
-          <button class="primary" id="submit" type="submit" disabled>Comprobar <span aria-hidden="true">↵</span></button>
-        </form>
-        <div class="secondary-actions"><button id="hint" type="button" disabled>Pista</button><button id="skip" type="button" disabled>Saltar / Ver respuesta</button></div>
-        <p id="hint-text" class="hint-text" aria-live="polite"></p>
-        <div id="feedback" class="feedback" role="status" aria-live="polite" aria-atomic="true">Cargando el mapa…</div>
-        <button id="retry" type="button" hidden>Reintentar carga</button>
-        <button class="primary" id="next" type="button" hidden>Siguiente calle →</button>
-        <button class="primary" id="advance" type="button" hidden></button>
-        <p class="rules">Acierto: +10 · Con pista: +5<br>Error o salto: racha a cero. Cambiar de nivel reinicia los marcadores.</p>
-      </div>
-    </section>
-    <section class="rankings-panel" aria-labelledby="ranked-heading">
-      <h2 id="ranked-heading">Jugá y compará</h2>
-      <p>La práctica es local y no se publica. El modo clasificado empieza desde cero con puntos confirmados por el servidor.</p>
-      <button id="catalog-load" type="button">Cargar ciudades y clasificación</button>
-      <p id="catalog-status" role="status" aria-live="polite"></p>
-      <div class="ranking-filters">
-        <label>Ciudad <select id="rank-city" disabled></select></label>
-        <label>Dificultad <select id="rank-difficulty" disabled></select></label>
-        <button id="rank-start" type="button" disabled>Jugar clasificado</button>
-        <button id="practice" type="button">Volver a práctica</button>
-      </div>
-      <p id="ranked-status" role="status" aria-live="polite">Modo práctica</p>
-      <button id="ranked-retry" type="button" hidden>Reintentar operación pendiente</button>
-      <h3>Clasificación actual</h3>
-      <p>Las posiciones pueden cambiar entre páginas.</p>
-      <button id="rank-refresh" type="button" disabled>Refrescar desde el inicio</button>
-      <p id="ranking-status" role="status" aria-live="polite"></p>
-      <ol id="ranking-list"></ol>
-      <button id="rank-more" type="button" hidden>Página siguiente</button>
-    </section>
-    <section id="publication" class="rankings-panel" hidden aria-labelledby="publication-heading">
-      <h2 id="publication-heading">Publicar resultado</h2>
-      <p id="publication-result"></p>
-      <p>Tu nombre será público, global e inmutable. Tu identidad está ligada a la cookie de este navegador: borrarla pierde acceso a tu nombre y partidas. Compartir navegador comparte identidad.</p>
-      <form id="publication-form">
-        <label for="username">Nombre de usuario</label>
-        <input id="username" name="username" required maxlength="64" autocomplete="off" aria-describedby="username-help publication-status">
-        <p id="username-help">Entre 3 y 20 letras ASCII, números o guion bajo. Solo el servidor confirma el nombre al publicar.</p>
-        <label class="consent"><input id="publish-consent" type="checkbox" required> Acepto publicar mi nombre y resultado.</label>
-        <button id="publish" type="submit">Publicar resultado</button>
-      </form>
-      <p id="publication-status" role="status" aria-live="polite"></p>
+    <section aria-labelledby="start-heading">
+      <h2 id="start-heading">Reconocé tu ciudad</h2>
+      <p>Un mapa sin nombres, una calle resaltada y tu memoria. Elegí una dificultad y probá cuánto conocés.</p>
+      <a href="./play.html">Jugar</a>
     </section>
     <footer>Hecho para mirar la ciudad de otra manera. <span>Sin etiquetas. Sin apuro.</span></footer>
-    <noscript>Necesitás activar JavaScript para cargar el mapa y jugar.</noscript>
+
   </main>
 </body>
 </html>

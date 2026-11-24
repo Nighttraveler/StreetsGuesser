@@ -2,6 +2,8 @@
 
 Estado: las secciones 1–6 conservan el diseño histórico de t_e3854ae8. La sección 7 registra la decisión posterior del usuario sobre el servidor de la imagen. No se modifica systemd en esta etapa.
 
+Actualización t_2d0104cf, OpenSpec `separate-game-route`: el conjunto publicable pasa de cinco a seis activos al agregar `play.html`. `/` y `/index.html` entregan portada independiente sin scripts; `/play.html` entrega el juego. COPY y allowlists siguen siendo explícitos, sin fallback ni exposición del checkout. Esta actualización sustituye las referencias históricas a cinco activos en este documento; no cambia seguridad, puertos, runtime Python, ni autoriza despliegue. Contrato vigente: GAME_ROUTE.md y DEPLOYMENT.md.
+
 ## 1. Inventario verificado
 
 - Fuente: `/home/fer/projects/juego-calles-arrecifes`; no es un repositorio Git (git status falla por ausencia de .git). No inicializar Git como parte de este cambio.

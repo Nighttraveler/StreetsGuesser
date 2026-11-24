@@ -55,6 +55,7 @@ function tokenFrom(req, name) {
   return values.length === 1 ? values[0].slice(name.length + 1) : null;
 }
 const publicFiles = new Map([
+  ['/play.html', ['play.html', 'text/html']],
   ['/', ['index.html', 'text/html']], ['/index.html', ['index.html', 'text/html']],
   ['/styles.css', ['styles.css', 'text/css']], ['/app.mjs', ['app.mjs', 'text/javascript']],
   ['/game.mjs', ['game.mjs', 'text/javascript']], ['/arrecifes_calles.json', ['arrecifes_calles.json', 'application/json']],

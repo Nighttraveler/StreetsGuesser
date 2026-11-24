@@ -3,6 +3,7 @@
 !Dockerfile
 !serve_static.py
 !index.html
+!play.html
 !styles.css
 !game.mjs
 !app.mjs

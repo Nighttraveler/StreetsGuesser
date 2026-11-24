@@ -11,13 +11,13 @@ import { chromium } from 'playwright';
 
 const root = new URL('../', import.meta.url);
 
-test('real static five-asset server: practice round works without rankings modules or API', async () => {
+test('real static six-asset server: isolated home and practice without rankings modules or API', async () => {
   const temporary = await mkdtemp(join(process.env.TMPDIR || tmpdir(), 'static-practice-'));
   let server, browser;
   try {
     const dockerfile = await readFile(new URL('Dockerfile', root), 'utf8');
     const assets = dockerfile.match(/^COPY (.+) \/srv\/arrecifes\/public\/$/m)[1].split(' ');
-    assert.deepEqual([...assets].sort(), ['app.mjs', 'arrecifes_calles.json', 'game.mjs', 'index.html', 'styles.css']);
+    assert.deepEqual([...assets].sort(), ['app.mjs', 'arrecifes_calles.json', 'game.mjs', 'index.html', 'play.html', 'styles.css']);
     for (const asset of assets) await copyFile(new URL(asset, root), join(temporary, asset));
     assert.deepEqual((await readdir(temporary)).sort(), [...assets].sort());
     // Import the actual production handler; only the bind port and asset directory differ.
@@ -36,14 +36,27 @@ test('real static five-asset server: practice round works without rankings modul
       assert.equal((await fetch(`${origin}${path}`)).status, 404, path);
     }
     browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
-    const page = await browser.newPage({ reducedMotion: 'reduce' });
-    const errors = [], apiRequests = [], external = [];
+    const page = await browser.newPage({ reducedMotion: 'reduce', viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
+    const errors = [], apiRequests = [], external = [], requests = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('request', request => {
+      requests.push(new URL(request.url()).pathname);
       if (new URL(request.url()).pathname.startsWith('/api/')) apiRequests.push(request.url());
       if (!request.url().startsWith(origin)) external.push(request.url());
     });
-    await page.goto(origin);
+    for (const path of ['/', '/index.html']) {
+      requests.length = 0;
+      await page.goto(`${origin}${path}`);
+      assert.equal(await page.locator('#map, #answer-form, script').count(), 0);
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      assert.ok(requests.every(path => ['/', '/index.html', '/styles.css'].includes(path)));
+    }
+    await page.getByRole('link', { name: 'Jugar', exact: true }).press('Enter');
+    await page.locator('#answer:enabled').waitFor({ timeout: 5000 });
+    assert.equal(new URL(page.url()).pathname, '/play.html');
+    await page.goto(`${origin}/play.html?direct=1`);
+    await page.locator('#answer:enabled').waitFor({ timeout: 5000 });
+    await page.reload();
     await page.locator('#answer:enabled').waitFor({ timeout: 5000 });
     assert.ok(await page.locator('#map path.road').count() > 0);
     await page.locator('#catalog-status').filter({ hasText: 'Clasificado no disponible' }).waitFor();
@@ -61,6 +74,8 @@ test('real static five-asset server: practice round works without rankings modul
     assert.match(await page.locator('#feedback').innerText(), /¡Bien!/);
     await page.locator('#next').click();
     assert.equal(await page.locator('#answer').isEnabled(), true);
+    await page.getByRole('link', { name: 'Volver a la portada' }).click();
+    assert.equal(await page.locator('#map, script').count(), 0);
     assert.deepEqual(errors, []);
     assert.deepEqual(apiRequests, []);
     assert.deepEqual(external, []);

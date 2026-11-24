@@ -39,11 +39,38 @@ async function open(viewport = { width: 1280, height: 1000 }) {
   return { page, context, errors, requests };
 }
 
-test('home and index use real catalog, same selector, read-only visit and responsive layout', async () => {
+test('home is isolated; keyboard navigation, direct game entry, reload and return work', async () => {
+  const { page, context, errors, requests } = await open();
+  try {
+    for (const path of ['/', '/index.html']) {
+      requests.length = 0;
+      assert.equal((await page.goto(`${origin}${path}`)).status(), 200);
+      assert.equal(await page.locator('#map, #answer-form, script').count(), 0);
+      assert.ok(requests.every(request => ['/', '/index.html', '/styles.css'].includes(new URL(request.url()).pathname)));
+      await page.getByRole('link', { name: 'Jugar', exact: true }).focus();
+      await page.keyboard.press('Enter');
+      await page.locator('#answer:enabled').waitFor();
+      assert.equal(new URL(page.url()).pathname, '/play.html');
+      await page.reload();
+      await page.locator('#answer:enabled').waitFor();
+      await page.getByRole('link', { name: 'Volver a la portada' }).click();
+      assert.equal(await page.locator('#map, script').count(), 0);
+    }
+    assert.equal((await page.goto(`${origin}/play.html?direct=1`)).status(), 200);
+    await page.locator('#answer:enabled').waitFor();
+    const head = await fetch(`${origin}/play.html`, { method: 'HEAD' });
+    assert.equal(head.status, 200);
+    assert.equal(await head.text(), '');
+    assert.equal((await fetch(`${origin}/not-a-route`)).status, 404);
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
+});
+
+test('game uses real catalog, same selector, read-only visit and responsive layout', async () => {
   for (const viewport of [{ width: 375, height: 812 }, { width: 1280, height: 1000 }]) {
     const { page, context, errors, requests } = await open(viewport);
     try {
-      for (const path of ['/', '/index.html']) {
+      for (const path of ['/play.html', '/play.html?catalog=1']) {
         requests.length = 0;
         await page.goto(`${origin}${path}`);
         await page.locator('#cities-list:visible').waitFor();
@@ -69,12 +96,13 @@ test('every city is reachable by keyboard or touch and selects its stable ID wit
   for (const width of [375, 1280]) {
     const { page, context, errors, requests } = await open({ width, height: 900 });
     try {
-      await page.goto(origin);
+      await page.goto(`${origin}/play.html`);
       const list = page.getByRole('list', { name: 'Ciudades disponibles', exact: true });
       const cards = list.getByRole('button');
       await cards.first().waitFor({ timeout: 5000 });
       assert.equal(await cards.count(), catalog.cities.length);
       if (width === 1280) {
+        await page.getByRole('link', { name: 'Volver a la portada' }).focus();
         await page.keyboard.press('Tab');
         for (const card of await cards.all()) {
           assert.ok(await card.evaluate(button => button.matches(':focus-visible') && getComputedStyle(button).outlineStyle !== 'none'));
@@ -110,7 +138,7 @@ test('duplicate names select different IDs and a city without difficulties does 
       name: 'Mismo nombre', difficulties: index === 0 ? city.difficulties : [],
     }));
     await page.route('**/api/v1/catalog', route => route.fulfill({ json: { cities } }));
-    await page.goto(origin);
+    await page.goto(`${origin}/play.html`);
     await page.locator('#ranking-status').filter({ hasText: 'Todavía no hay resultados' }).waitFor();
     const cards = page.getByRole('button', { name: 'Mismo nombre', exact: true });
     assert.equal(await cards.count(), 2);
@@ -136,7 +164,7 @@ test('loading, empty, HTTP/network/malformed errors, no stale list and retry sha
       if (mode === 'network') return route.abort('connectionfailed');
       return route.fulfill({ json: mode === 'empty' ? { cities: [] } : mode === 'malformed' ? { cities: null } : catalog });
     });
-    await page.goto(origin);
+    await page.goto(`${origin}/play.html`);
     await page.locator('#answer:enabled').waitFor();
     assert.match(await page.locator('#cities-status').innerText(), /Cargando ciudades/);
     assert.equal(await page.locator('#cities-list').getAttribute('aria-busy'), 'true');
@@ -178,7 +206,7 @@ test('long names and HTML are complete inert text on mobile and desktop', async 
       await page.route('**/api/v1/catalog', route => route.fulfill({ json: {
         cities: catalog.cities.map((city, index) => ({ ...city, name: names[index] })),
       } }));
-      await page.goto(origin);
+      await page.goto(`${origin}/play.html`);
       await page.locator('#cities-list:visible').waitFor();
       assert.deepEqual(await page.locator('#cities-list li').allTextContents(), names);
       assert.equal(await page.locator('#cities-list img').count(), 0);

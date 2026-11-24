@@ -1,6 +1,6 @@
 # Despliegue de Arrecifes · De memoria
 
-El único servicio, `web`, entrega `index.html`, `styles.css`, `game.mjs`, `app.mjs` y `arrecifes_calles.json`. Conserva la atribución de OpenStreetMap. Usa la biblioteca estándar de Python dentro de la imagen; no requiere Nginx, proxy, Node, Python en el host, base de datos, volúmenes, secretos ni la unidad systemd del juego. No hay partidas, sesiones ni marcadores persistidos en el servidor.
+El único servicio, `web`, entrega seis activos: `index.html`, `play.html`, `styles.css`, `game.mjs`, `app.mjs` y `arrecifes_calles.json`. `/` y `/index.html` son portada sin runtime del juego; `/play.html` es la URL del juego, también al abrir o recargar directamente. Ver GAME_ROUTE.md. Conserva la atribución de OpenStreetMap. Usa la biblioteca estándar de Python dentro de la imagen; no requiere Nginx, proxy, Node, Python en el host, base de datos, volúmenes, secretos ni la unidad systemd del juego. No hay partidas, sesiones ni marcadores persistidos en el servidor.
 
 ## Arranque y operación
 
@@ -40,7 +40,7 @@ python3 -m unittest discover -s tests -p test_serve_static.py -v
 bash tests/compose-smoke.sh 18090         # navegador y HTTP contra el contenedor real
 ```
 
-La prueba verifica modelos de Compose por defecto/LAN/ensayo, build automático, healthcheck, restricciones efectivas, cinco archivos y MIME, HEAD sin cuerpo, 404 de rutas privadas, SHA-256 del dataset, juego en Chromium, stop/start, recuperación automática tras la salida del proceso, recreación, logs y rollback. El rollback usa dos imágenes de IDs distintos (la segunda difiere en una etiqueta de build, no en los datos), restaura la configuración archivada y vuelve a la primera imagen con `load` y `--no-build`.
+La prueba verifica modelos de Compose por defecto/LAN/ensayo, build automático, healthcheck, restricciones efectivas, seis archivos y MIME, HEAD sin cuerpo, 404 de rutas privadas, SHA-256 del dataset, portada aislada, navegación y recarga del juego en Chromium, stop/start, recuperación automática tras la salida del proceso, recreación, logs y rollback. El rollback usa dos imágenes de IDs distintos (la segunda difiere en una etiqueta de build, no en los datos), restaura la configuración archivada y vuelve a la primera imagen con `load` y `--no-build`.
 
 Si el daemon no tiene un pool IPv4 disponible, no podar redes ni tocar el daemon compartido. Inventariar subredes y rutas del host, incluidas VPN, y elegir una subred privada no solapada. El guion acepta `SMOKE_SUBNET`, comprueba redes Docker y rutas locales y aplica un archivo complementario temporal solo a ese proyecto. Ejemplo **solo si sigue libre**:
 

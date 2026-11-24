@@ -22,7 +22,7 @@ function board(city = 'arrecifes', difficulty = 1, items = []) {
 const failure = (code, message = code) => ({ error: { code, message, field: null, retryable: false } });
 let browser, server, origin;
 before(async () => {
-  const allowed = new Set(['index.html', 'app.mjs', 'game.mjs', 'styles.css', 'rankings-ui.mjs', 'ranked-game-client.mjs', 'arrecifes_calles.json']);
+  const allowed = new Set(['index.html', 'play.html', 'app.mjs', 'game.mjs', 'styles.css', 'rankings-ui.mjs', 'ranked-game-client.mjs', 'arrecifes_calles.json']);
   server = createServer(async (req, res) => {
     const name = req.url === '/' ? 'index.html' : req.url.slice(1);
     if (!allowed.has(name)) { res.writeHead(404); res.end(); return; }
@@ -45,7 +45,7 @@ async function setup(handler = () => undefined, options = {}) {
     const defaults = { '/catalog': catalog, '/session': { player }, '/games': fixtureGame(), '/games/active': { game: fixtureGame() }, [`/games/${gameId}`]: fixtureGame('completed'), [`/cities/arrecifes/datasets/${version}`]: data, [`/games/${gameId}/actions`]: { outcome: 'correct', game: fixtureGame('completed') } };
     await route.fulfill({ json: path === '/rankings' ? board() : defaults[path] || failure('NOT_FOUND'), status: path === '/games' ? 201 : 200 });
   });
-  await page.goto(origin);
+  await page.goto(`${origin}/play.html`);
   await page.locator('#answer:enabled').waitFor();
   return { page, context, errors };
 }

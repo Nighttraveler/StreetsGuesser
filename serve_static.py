@@ -1,4 +1,4 @@
-"""Sirve solo los cinco activos públicos del juego, sin explorar directorios."""
+"""Sirve solo los seis activos públicos, sin explorar directorios."""
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -7,6 +7,7 @@ import signal
 
 PUBLIC_TYPES = {
     "index.html": "text/html",
+    "play.html": "text/html",
     "styles.css": "text/css",
     "game.mjs": "application/javascript",
     "app.mjs": "application/javascript",
