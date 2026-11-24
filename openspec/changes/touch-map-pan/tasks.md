@@ -9,4 +9,4 @@
 
 ## 3. Verificación y handoff
 - [x] Ejecutar npm test (34/34), suite navegador (15/15), cobertura game.mjs (100% líneas/funciones, 98.33% ramas), sintaxis, gates OpenSpec y diff check.
-- [ ] Inspeccionar diff staged y crear commit con trailer único; verificar worktree limpio y entregar hashes/base a QA hija.
+- [x] Inspeccionar diff staged y crear commit con trailer único (1fda3b0); verificar worktree limpio y preparar hashes/base para QA hija t_ccb9ee58.

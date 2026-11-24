@@ -139,6 +139,19 @@ eje y conservación de escala. OpenSpec previo: `touch-map-pan`, commit `c3c5e7c
 Sin build frontend (estáticos), migraciones, dependencias nuevas ni cambios Docker.
 Android real y Safari/iOS quedan a QA hija t_ccb9ee58: emular Chromium no los certifica.
 
+Evidencia de implementación: `1fda3b096a295bb74f0559b710e10099d7f0f850`,
+rama `wt/t_caaef68a`, base común `d5e86b46fb413ae255d0b5247eb80ba54cbc17d6`.
+Node 22.22.3 / Chromium 151.0.7922.173 en Linux arm64. `npm test`: 34/34;
+`npm run test:functional`: 15/15, dos ejecuciones completas verdes consecutivas
+(la última incluye umbral touch y transición híbrida). Cobertura game.mjs:
+100% líneas/funciones y 98.33% ramas. Gate del cambio válido; validación estricta
+global 13/13; guard 7/7; servidor estático 4/4; sintaxis de app y tests y diff check
+sin errores. RED inicial por cámara inmóvil. Durante desarrollo se corrigió una
+secuencia CDP mal terminada; además hubo un fallo aislado de clics mouse 0/2,
+no reproducido en cinco ejecuciones focalizadas y las dos completas posteriores.
+Se conserva diagnóstico de eventos en esa aserción para QA; no se atribuye una
+causa sin evidencia. Integración y dispositivos reales siguen pendientes.
+
 ## Handoff y alcance
 
 ### Actualización t_c065e516: navegación con mouse
