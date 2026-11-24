@@ -80,6 +80,65 @@ Capturas reales generadas por las pruebas e inspeccionadas visualmente:
 - `/home/fer/projects/juego-calles-arrecifes/test-results/desktop.png` (1280×1000).
 - `/home/fer/projects/juego-calles-arrecifes/test-results/mobile.png` (375×812, página completa).
 
+## Arrastre táctil del mapa (t_caaef68a)
+
+Vista afectada: SVG `#map` de la sección de juego en `/` y `/index.html`,
+compartido por práctica y clasificado, debajo de la portada de ciudades.
+Esta actualización sustituye la limitación histórica «no se agregan gestos
+táctiles» de las reglas anteriores.
+
+Un dedo arrastra la cámara tras 5px, en cualquier dirección, sin cambiar zoom,
+ronda ni puntos. Sólo el SVG usa `touch-action: pinch-zoom`; el resto de la página
+conserva scroll nativo. No hay biblioteca de mapas ni capas que bloqueen el
+centro: faltaban eventos táctiles. Se usan Pointer Events con captura, se ignoran
+eventos mouse de compatibilidad táctil y se conserva el controlador mouse.
+Soltar, cancelar, perder captura/foco, ocultar la página, agregar un segundo dedo
+o usar un comando de cámara detiene el arrastre; un nuevo gesto vuelve a funcionar.
+Dos dedos permiten zoom nativo de página, no zoom de cámara SVG (no existía antes).
+Los botones +/−, Vista general y Ver calle siguen disponibles.
+
+Prueba manual para QA:
+
+1. Desde la raíz del worktree, servir únicamente los cinco activos mediante
+   la clase allowlist existente (puerto de prueba libre, sin servicio persistente):
+
+       python3 -c 'from pathlib import Path; from serve_static import StaticServer; StaticServer(("127.0.0.1", 18093), Path.cwd()).serve_forever()'
+
+   Abrir `http://127.0.0.1:18093/`; finalizar con Ctrl+C. El catálogo y clasificado
+   no están disponibles en este modo de práctica. Para un teléfono físico, QA
+   deberá configurar explícitamente acceso de prueba LAN; loopback no es accesible
+   desde otro dispositivo. Alternativa con API: RANKINGS_BACKEND.md. No servir todo
+   el repositorio con un servidor genérico ni modificar el servicio productivo.
+2. Abrir `/`, bajar hasta el mapa de práctica y esperar la calle verde. Arrastrar
+   desde el centro con un dedo, sin levantarlo, a derecha, abajo, izquierda,
+   arriba y diagonalmente; repetir tras soltar. El mapa debe seguir el dedo y
+   la página permanecer quieta. Repetir tras Vista general y +/−.
+3. Iniciar el gesto sobre texto fuera del mapa: la página debe desplazarse.
+   Pulsar Ver calle para recuperar encuadre y comprobar los demás controles.
+4. Agregar otro dedo: no debe seguir paneando como un dedo; pinch amplía la
+   página de forma nativa. Volver a un gesto nuevo de un dedo y comprobar pan.
+   Cambiar de pestaña durante un gesto y regresar: no debe quedar arrastrando.
+5. En escritorio, verificar arrastre principal, clic simple sin pan, botones
+   secundarios sin pan y uso del mouse después de un gesto táctil en equipo híbrido.
+   Si se dispone del backend, repetir en clasificado (mismo SVG/controlador).
+
+Automatización desde la raíz de este worktree:
+
+    npm ci --ignore-scripts --no-audit --no-fund
+    npm test
+    npm run test:functional
+    node --test --test-name-pattern='táctil|pinch' tests/browser.test.mjs
+
+Los tres escenarios nuevos usan Chromium real headless con viewport 390×844,
+`isMobile`/`hasTouch` y contactos CDP (no MouseEvent simulando touch). Cubren pan
+continuo y umbral, scroll exterior, taps, captura/cancelación, segundo dedo,
+zoom nativo con `visualViewport.scale` y transición touch→mouse. Blur y hidden
+son eventos DOM simulados; no equivalen a cambiar de app en un teléfono físico.
+Se añade un unitario en tests/game.test.mjs de transformación incremental por
+eje y conservación de escala. OpenSpec previo: `touch-map-pan`, commit `c3c5e7c`.
+Sin build frontend (estáticos), migraciones, dependencias nuevas ni cambios Docker.
+Android real y Safari/iOS quedan a QA hija t_ccb9ee58: emular Chromium no los certifica.
+
 ## Handoff y alcance
 
 ### Actualización t_c065e516: navegación con mouse

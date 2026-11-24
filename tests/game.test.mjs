@@ -17,6 +17,21 @@ test('desplazamiento SVG usa la parte lineal de la matriz y preserva zoom sin mu
   assert.deepEqual(panView(view, -12, 8, { a: .5, b: 1, c: -1, d: .5 }), [24, 28, 300, 100]);
   assert.deepEqual(view, [10, 20, 300, 100]);
 });
+test('pan táctil incremental conserva escala y vuelve al origen al invertir cada eje', () => {
+  const original = [10, 20, 300, 100];
+  const inverse = { a: .5, b: 0, c: 0, d: .5 };
+  let camera = original;
+  for (const [dx, dy, expected] of [
+    [30, 0, [-5, 20, 300, 100]],
+    [0, -40, [-5, 40, 300, 100]],
+    [-30, 0, [10, 40, 300, 100]],
+    [0, 40, original],
+  ]) {
+    camera = panView(camera, dx, dy, inverse);
+    assert.deepEqual(camera, expected);
+  }
+  assert.deepEqual(original, [10, 20, 300, 100]);
+});
 test('siguiente dificultad respeta configuración, sin envolver ni inventar niveles', () => {
   assert.equal(nextLevel('1', ['1', '2', '3']), '2');
   assert.equal(nextLevel('2', ['1', '2', '3']), '3');

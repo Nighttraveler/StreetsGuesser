@@ -19,6 +19,7 @@ let animation;
 let projected = [];
 let drag;
 let suppressMapClick = false;
+let lastPointerType = 'mouse';
 let rankedView, rankedBusy = false, practiceStreets = [];
 let rankings;
 const rankingsCallbacks = {
@@ -57,19 +58,26 @@ const rankingsCallbacks = {
 };
 
 function stopDrag() {
+  const pointerId = drag?.pointerId;
   drag = undefined;
   map.classList.remove('dragging');
+  if (pointerId !== undefined && map.hasPointerCapture(pointerId)) map.releasePointerCapture(pointerId);
 }
 // A new press (including one on a control) cannot inherit a suppressed click.
-window.addEventListener('mousedown', () => { suppressMapClick = false; }, true);
+window.addEventListener('mousedown', () => {
+  if (lastPointerType === 'mouse') suppressMapClick = false;
+}, true);
 map.addEventListener('mousedown', event => {
-  if (event.button !== 0 || !fullView ||
+  if (lastPointerType !== 'mouse' || event.button !== 0 || !fullView ||
       event.target.closest('button, a, input, select, textarea, [role="button"], [contenteditable]')) return;
   drag = { x: event.clientX, y: event.clientY, active: false };
 });
 window.addEventListener('mousemove', event => {
-  if (!drag) return;
+  if (!drag || drag.pointerId !== undefined) return;
   if (!(event.buttons & 1)) { stopDrag(); return; }
+  moveDrag(event);
+});
+function moveDrag(event) {
   const dx = event.clientX - drag.x;
   const dy = event.clientY - drag.y;
   if (!drag.active && !isMapDrag(dx, dy)) return;
@@ -83,8 +91,27 @@ window.addEventListener('mousemove', event => {
   drag.x = event.clientX;
   drag.y = event.clientY;
   event.preventDefault();
+}
+window.addEventListener('mouseup', event => { if (event.button === 0 && drag?.pointerId === undefined) stopDrag(); });
+// One non-mouse pointer owns the pan. A second finger yields to native pinch
+// zoom; do not resume until a fresh primary pointerdown starts another gesture.
+window.addEventListener('pointerdown', event => {
+  lastPointerType = event.pointerType;
+  if (event.pointerType === 'mouse') return;
+  suppressMapClick = false;
+  if (!event.isPrimary) { stopDrag(); return; }
+  if (!fullView || event.button !== 0 || !map.contains(event.target)) return;
+  drag = { x: event.clientX, y: event.clientY, active: false, pointerId: event.pointerId };
+  map.setPointerCapture(event.pointerId);
+}, true);
+map.addEventListener('pointermove', event => {
+  if (drag?.pointerId === event.pointerId) moveDrag(event);
 });
-window.addEventListener('mouseup', event => { if (event.button === 0) stopDrag(); });
+for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+  map.addEventListener(type, event => {
+    if (drag?.pointerId === event.pointerId) stopDrag();
+  });
+}
 window.addEventListener('blur', stopDrag);
 document.addEventListener('visibilitychange', () => { if (document.hidden) stopDrag(); });
 map.addEventListener('click', event => {

@@ -12,7 +12,7 @@ h1 span { font-weight: 350; color: var(--muted); }
 .map-heading { position: absolute; inset: 22px 22px auto; display: flex; gap: 8px; align-items: center; font-size: 10px; letter-spacing: .12em; color: #bccad0; pointer-events: none; }
 .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 .map-town { margin-left: auto; }
-#map { display: block; width: 100%; flex: 1; min-height: 450px; cursor: grab; user-select: none; }
+#map { display: block; width: 100%; flex: 1; min-height: 450px; cursor: grab; user-select: none; touch-action: pinch-zoom; }
 #map.dragging { cursor: grabbing; }
 .road { fill: none; stroke: #48606b; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .road.active { stroke: var(--accent); stroke-width: 5; filter: drop-shadow(0 0 3px #cefa6955); }

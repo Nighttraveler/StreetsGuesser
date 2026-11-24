@@ -77,6 +77,144 @@ async function startDrag(page) {
   return point;
 }
 
+test('táctil real emulado: un dedo continuo, scroll exterior y controles', async () => {
+  const { context, page, errors } = await openPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
+  try {
+    await ready(page);
+    const point = await mapPoint(page);
+    const cdp = await context.newCDPSession(page);
+    const touch = (type, points) => cdp.send('Input.dispatchTouchEvent', {
+      type, touchPoints: points.map((p, id) => ({ ...p, id })),
+    });
+    const original = await camera(page);
+    const scale = await page.locator('#map').evaluate(map => map.getScreenCTM().a);
+    const scroll = await page.evaluate(() => scrollY);
+    const street = await activeStreet(page);
+    await touch('touchStart', [point]);
+    for (const [dx, dy] of [[35, 0], [35, 40], [-30, 40], [-30, -35], [20, -20]]) {
+      await touch('touchMove', [{ x: point.x + dx, y: point.y + dy }]);
+      await page.waitForTimeout(40);
+      const moved = await camera(page);
+      assert.ok(Math.abs(moved[0] - (original[0] - dx / scale)) < .01, 'horizontal camera follows finger');
+      assert.ok(Math.abs(moved[1] - (original[1] - dy / scale)) < .01, 'vertical camera follows finger');
+      assert.deepEqual(moved.slice(2), original.slice(2));
+    }
+    await touch('touchEnd', []);
+    assert.equal(await page.evaluate(() => scrollY), scroll);
+    assert.equal(await page.locator('#map.dragging').count(), 0);
+    assert.equal((await activeStreet(page)).nombre, street.nombre);
+    assert.equal(await page.locator('#score').innerText(), '0');
+    const moved = await camera(page);
+    await touch('touchStart', [point]);
+    await touch('touchMove', [{ x: point.x + 2, y: point.y + 2 }]);
+    await touch('touchEnd', []);
+    assert.deepEqual(await camera(page), moved, 'sub-threshold touch does not pan');
+    await page.locator('#zoom-in').tap();
+    assert.ok((await camera(page))[2] < moved[2]);
+    await page.locator('#locate').tap();
+    assert.deepEqual(await camera(page), original);
+    // Start below the map, on ordinary text rather than an input/control.
+    await page.locator('.help').scrollIntoViewIfNeeded();
+    const box = await page.locator('.help').boundingBox();
+    const outside = { x: box.x + 30, y: box.y + 15 };
+    const beforeScroll = await page.evaluate(() => scrollY);
+    await touch('touchStart', [outside]);
+    for (let i = 1; i <= 6; i++) {
+      await touch('touchMove', [{ x: outside.x, y: outside.y - i * 15 }]);
+      await page.waitForTimeout(30);
+    }
+    await touch('touchEnd', []);
+    await page.waitForTimeout(150);
+    assert.ok(await page.evaluate(y => scrollY > y, beforeScroll), 'scroll outside SVG remains native');
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
+});
+
+test('táctil: cancelaciones, captura, segundo dedo y recuperación', async () => {
+  const { context, page, errors } = await openPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
+  try {
+    await ready(page);
+    await page.evaluate(() => {
+      window.mapClicks = 0;
+      const map = document.getElementById('map');
+      map.addEventListener('click', () => window.mapClicks++);
+      window.inputEvents = [];
+      for (const type of ['pointerdown', 'pointermove', 'pointerup', 'mousedown', 'mouseup', 'click']) window.addEventListener(type, event => window.inputEvents.push([type, event.pointerType, event.target.id, event.defaultPrevented]), true);
+      map.addEventListener('gotpointercapture', event => { window.capturedPointer = event.pointerId; });
+    });
+    const cdp = await context.newCDPSession(page);
+    const touch = (type, points) => cdp.send('Input.dispatchTouchEvent', {
+      type, touchPoints: points.map((p, id) => ({ ...p, id })),
+    });
+    for (const interruption of ['cancel', 'capture', 'blur', 'hidden', 'command', 'second']) {
+      const point = await mapPoint(page);
+      const before = await camera(page);
+      await touch('touchStart', [point]);
+      await touch('touchMove', [{ x: point.x + 30, y: point.y }]);
+      await page.waitForTimeout(40);
+      assert.notDeepEqual(await camera(page), before, interruption);
+      if (interruption === 'cancel') await touch('touchCancel', []);
+      if (interruption === 'capture') await page.locator('#map').evaluate(map => map.releasePointerCapture(window.capturedPointer));
+      if (interruption === 'blur') await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+      if (interruption === 'hidden') await page.evaluate(() => {
+        Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+        document.dispatchEvent(new Event('visibilitychange'));
+        delete document.hidden;
+      });
+      if (interruption === 'command') await page.locator('#locate').evaluate(button => button.click());
+      if (interruption === 'second') await touch('touchStart', [{ x: point.x + 30, y: point.y }, { x: point.x - 30, y: point.y }]);
+      const stopped = await camera(page);
+      if (interruption !== 'cancel') {
+        await touch('touchMove', [
+          { x: point.x + 50, y: point.y + 25 },
+          ...(interruption === 'second' ? [{ x: point.x - 10, y: point.y + 25 }] : []),
+        ]);
+        await page.waitForTimeout(40);
+        await touch('touchEnd', []);
+      }
+      assert.deepEqual(await camera(page), stopped, interruption);
+      assert.equal(await page.locator('#map.dragging').count(), 0);
+    }
+    // A fresh tap remains a click; no completed drag produced a click.
+    assert.equal(await page.evaluate(() => window.mapClicks), 0);
+    const point = await mapPoint(page);
+    await page.touchscreen.tap(point.x, point.y);
+    assert.equal(await page.evaluate(() => window.mapClicks), 1, JSON.stringify(await page.evaluate(() => window.inputEvents)));
+    const beforeMouse = await camera(page);
+    await startDrag(page);
+    assert.notDeepEqual(await camera(page), beforeMouse, 'hybrid touch then mouse');
+    await page.mouse.up();
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
+});
+
+test('pinch táctil conserva zoom nativo de página sin escalar la cámara SVG', async () => {
+  const { context, page, errors } = await openPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
+  try {
+    await ready(page);
+    const point = await mapPoint(page);
+    const cdp = await context.newCDPSession(page);
+    const touch = (type, distance) => cdp.send('Input.dispatchTouchEvent', {
+      type, touchPoints: type === 'touchEnd' ? [] : [
+        { x: point.x - distance, y: point.y, id: 0 },
+        { x: point.x + distance, y: point.y, id: 1 },
+      ],
+    });
+    const original = await camera(page);
+    const scale = await page.evaluate(() => visualViewport.scale);
+    await touch('touchStart', 25);
+    for (let distance = 30; distance <= 100; distance += 10) {
+      await touch('touchMove', distance);
+      await page.waitForTimeout(40);
+    }
+    await touch('touchEnd');
+    await page.waitForTimeout(100);
+    assert.ok(await page.evaluate(before => visualViewport.scale > before, scale));
+    assert.deepEqual(await camera(page), original);
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
+});
+
 test('arrastre continuo a escala SVG, umbral, clics y botones secundarios', async () => {
   const { context, page, errors } = await openPage({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
   try {
@@ -84,6 +222,8 @@ test('arrastre continuo a escala SVG, umbral, clics y botones secundarios', asyn
     await page.evaluate(() => {
       window.mapClicks = 0;
       document.getElementById('map').addEventListener('click', () => window.mapClicks++);
+      window.inputEvents = [];
+      for (const type of ['pointerdown', 'pointermove', 'pointerup', 'mousedown', 'mouseup', 'click']) window.addEventListener(type, event => window.inputEvents.push([type, event.pointerType, event.target.id, event.defaultPrevented]), true);
     });
     const initialStreet = await activeStreet(page);
     const point = await mapPoint(page);
@@ -93,7 +233,7 @@ test('arrastre continuo a escala SVG, umbral, clics y botones secundarios', asyn
     await page.mouse.move(point.x + 2, point.y + 2);
     await page.mouse.up();
     assert.deepEqual(await camera(page), before);
-    assert.equal(await page.evaluate(() => window.mapClicks), 2);
+    assert.equal(await page.evaluate(() => window.mapClicks), 2, JSON.stringify(await page.evaluate(() => window.inputEvents)));
     for (const button of ['right', 'middle']) {
       await page.mouse.move(point.x, point.y);
       await page.mouse.down({ button });
