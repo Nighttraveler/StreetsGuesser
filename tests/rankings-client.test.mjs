@@ -33,7 +33,10 @@ test('business errors never become success and a corrected request is a new inte
 });
 test('catalog/session/actions/board obey request contract without leaking client score', async () => {
   const calls = [];
-  const api = createRankedClient(async (path, options) => { calls.push({ path, ...options }); return json({}); }, () => 'key');
+  const api = createRankedClient(async (path, options) => {
+    calls.push({ path, ...options });
+    return json(path === '/api/v1/catalog' ? { cities: [] } : {});
+  }, () => 'key');
   await api.catalog();
   await api.startSession();
   await api.action({ id: 'g', round: { id: 'r' }, score: 999 }, 'hint');

@@ -15,6 +15,12 @@ const files = new Map([
 let server, browser, origin;
 before(async () => {
   server = createServer(async (req, res) => {
+    // Explicit empty catalog fixture: practice tests do not exercise the API.
+    if (req.url === '/api/v1/catalog') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ cities: [] }));
+      return;
+    }
     const file = files.get(new URL(req.url, 'http://localhost').pathname);
     if (!file) { res.writeHead(404); res.end('Not found'); return; }
     try {
@@ -46,6 +52,8 @@ async function openPage(options = {}) {
 async function ready(page) {
   await page.goto(origin);
   await page.locator('#answer:enabled').waitFor();
+  // The home now precedes the game; mouse coordinates must target the visible map.
+  await page.locator('.game').scrollIntoViewIfNeeded();
 }
 async function activeStreet(page) {
   const index = await page.locator('g:has(path.active)').getAttribute('data-street-index');
@@ -56,6 +64,8 @@ async function camera(page) {
   return (await page.locator('#map').getAttribute('viewBox')).split(' ').map(Number);
 }
 async function mapPoint(page) {
+  // Camera controls can change SVG height and trigger browser scroll anchoring.
+  await page.locator('#map').scrollIntoViewIfNeeded();
   const box = await page.locator('#map').boundingBox();
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
@@ -98,7 +108,7 @@ test('arrastre continuo a escala SVG, umbral, clics y botones secundarios', asyn
       const scale = await page.locator('#map').evaluate(map => map.getScreenCTM().a);
       const dragPoint = await startDrag(page);
       const first = await camera(page);
-      assert.ok(Math.abs(first[0] - (original[0] - 40 / scale)) < .001);
+      assert.ok(Math.abs(first[0] - (original[0] - 40 / scale)) < .001, JSON.stringify({ control, original, first, scale, dragPoint }));
       assert.ok(Math.abs(first[1] - (original[1] - 30 / scale)) < .001);
       assert.deepEqual(first.slice(2), original.slice(2));
       assert.equal(await page.locator('#map').evaluate(map => getComputedStyle(map).cursor), 'grabbing');
@@ -111,7 +121,8 @@ test('arrastre continuo a escala SVG, umbral, clics y botones secundarios', asyn
       await page.mouse.move(point.x, point.y);
       assert.deepEqual(await camera(page), second);
     }
-    await page.mouse.click(point.x, point.y);
+    const finalPoint = await mapPoint(page);
+    await page.mouse.click(finalPoint.x, finalPoint.y);
     assert.equal(await page.evaluate(() => window.mapClicks), 3);
     assert.equal(await page.locator('#map').evaluate(map => getComputedStyle(map).cursor), 'grab');
     assert.equal((await activeStreet(page)).nombre, initialStreet.nombre);

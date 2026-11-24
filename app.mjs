@@ -333,6 +333,9 @@ load();
 import('./rankings-ui.mjs').then(({ mountRankings }) => {
   rankings = mountRankings(rankingsCallbacks);
 }).catch(() => {
+  byId('cities-status').textContent = 'No se pudieron cargar las ciudades: catálogo no disponible en este servidor. Podés jugar en práctica.';
+  byId('cities-list').setAttribute('aria-busy', 'false');
+  byId('cities-retry').disabled = true;
   byId('catalog-status').textContent = 'Clasificado no disponible. Podés jugar en práctica.';
   byId('catalog-load').disabled = true;
 });

@@ -48,6 +48,10 @@ test('real static five-asset server: practice round works without rankings modul
     assert.ok(await page.locator('#map path.road').count() > 0);
     await page.locator('#catalog-status').filter({ hasText: 'Clasificado no disponible' }).waitFor();
     assert.equal(await page.locator('#catalog-load').isDisabled(), true);
+    assert.match(await page.locator('#cities-status').innerText(), /No se pudieron cargar las ciudades/);
+    assert.equal(await page.locator('#cities-list li').count(), 0);
+    assert.equal(await page.locator('#cities-list').getAttribute('aria-busy'), 'false');
+    assert.equal(await page.locator('#cities-retry').isDisabled(), true);
     const data = JSON.parse(await readFile(new URL('arrecifes_calles.json', root)));
     const index = Number(await page.locator('g:has(path.active)').getAttribute('data-street-index'));
     await page.locator('#answer').fill(data[index].nombre);

@@ -16,6 +16,15 @@
       <div><p class="eyebrow">UN MAPA. TU CIUDAD.</p><h1>Arrecifes <span>de memoria</span></h1></div>
       <p class="intro">¿Cuánto conocés tus calles?<br>Encontrá el nombre detrás del trazo.</p>
     </header>
+    <section class="rankings-panel city-home" aria-labelledby="cities-heading">
+      <p class="eyebrow">EXPLORÁ EL CATÁLOGO</p>
+      <h2 id="cities-heading">Ciudades disponibles</h2>
+      <p>Descubrí las ciudades cargadas para jugar en modo clasificado. Más abajo podés practicar con el mapa de Arrecifes.</p>
+      <p id="cities-status" role="status" aria-live="polite" aria-atomic="true">Cargando ciudades…</p>
+      <ul id="cities-list" class="city-list" aria-label="Ciudades cargadas" aria-busy="true" hidden></ul>
+      <button id="cities-retry" type="button" disabled>Actualizar ciudades</button>
+      <noscript>Activá JavaScript para consultar las ciudades disponibles.</noscript>
+    </section>
     <section class="game" aria-label="Juego de calles">
       <div class="map-panel">
         <div class="map-heading"><span class="live-dot"></span> MAPA MUDO <span class="map-town">ARRECIFES, BA</span></div>

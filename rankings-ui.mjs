@@ -3,12 +3,13 @@ import { createRankedClient, errorMessage } from './ranked-game-client.mjs';
 export function mountRankings({ showGame, practice, setBusy }, api = createRankedClient()) {
   const el = id => document.getElementById(id);
   let cities = [], player, game, finalGame, busy = false, pending, sequence = 0, offset = 0, publishing = false, blocked = false;
+  let catalogLoading = false;
   const text = (id, value) => { el(id).textContent = value; };
   const remember = id => { try { localStorage.setItem('ranked-last-game', id); } catch { /* storage optional */ } };
   const lastId = () => { try { return localStorage.getItem('ranked-last-game'); } catch { return null; } };
   function lock(value) {
     busy = value;
-    el('rank-start').disabled = value || Boolean(pending) || !cities.length;
+    el('rank-start').disabled = value || Boolean(pending) || catalogLoading || !el('rank-difficulty').value;
     el('practice').disabled = value;
     el('publish').disabled = value || Boolean(pending) || publishing || blocked;
     setBusy(value || Boolean(pending));
@@ -104,18 +105,49 @@ export function mountRankings({ showGame, practice, setBusy }, api = createRanke
     el('rank-refresh').disabled = unavailable;
     if (!unavailable) refresh();
   }
-  el('catalog-load').addEventListener('click', async () => {
+  async function loadCatalog() {
+    if (catalogLoading) return;
+    catalogLoading = true;
     el('catalog-load').disabled = true;
+    el('cities-retry').disabled = true;
+    el('cities-list').hidden = true;
+    el('cities-list').replaceChildren();
+    el('cities-list').setAttribute('aria-busy', 'true');
+    text('cities-status', 'Cargando ciudades…');
     text('catalog-status', 'Cargando ciudades…');
+    cities = [];
+    ++sequence; // Discard ranking responses belonging to the previous catalog.
+    el('ranking-list').replaceChildren();
+    el('rank-more').hidden = true;
+    text('ranking-status', '');
+    el('rank-city').replaceChildren();
+    el('rank-city').disabled = true;
+    difficulties();
     try {
       cities = (await api.catalog()).cities;
+      for (const city of cities) {
+        const row = document.createElement('li');
+        row.textContent = city.name;
+        el('cities-list').append(row);
+      }
+      el('cities-list').hidden = !cities.length;
+      text('cities-status', cities.length ? 'Ciudades cargadas en el catálogo actual.' : 'No hay ciudades disponibles. Podés jugar en práctica.');
       el('rank-city').replaceChildren(...cities.map(city => new Option(city.name, city.id)));
       el('rank-city').disabled = !cities.length;
       text('catalog-status', cities.length ? 'Elegí ciudad y dificultad.' : 'No hay ciudades disponibles. Podés jugar en práctica.');
       difficulties();
-    } catch (error) { text('catalog-status', `Clasificado no disponible. ${errorMessage(error)} Podés jugar en práctica.`); }
-    finally { el('catalog-load').disabled = false; }
-  });
+    } catch (error) {
+      text('cities-status', 'No se pudieron cargar las ciudades. Reintentá o seguí jugando en práctica.');
+      text('catalog-status', `Clasificado no disponible. ${errorMessage(error)} Podés jugar en práctica.`);
+    } finally {
+      catalogLoading = false;
+      el('cities-list').setAttribute('aria-busy', 'false');
+      el('catalog-load').disabled = false;
+      el('cities-retry').disabled = false;
+    }
+  }
+  el('catalog-load').addEventListener('click', loadCatalog);
+  el('cities-retry').addEventListener('click', loadCatalog);
   el('rank-city').addEventListener('change', difficulties);
   el('rank-difficulty').addEventListener('change', () => refresh());
   el('rank-refresh').addEventListener('click', () => refresh());
@@ -185,6 +217,7 @@ export function mountRankings({ showGame, practice, setBusy }, api = createRanke
       lock(false);
     }
   });
+  loadCatalog();
   return {
     get game() { return game; },
     get busy() { return busy || Boolean(pending); },

@@ -6,6 +6,16 @@ export class ApiError extends Error {
     this.retryable = retryable;
   }
 }
+export function validateCatalog(value) {
+  const named = item => item && typeof item.name === 'string' && item.name.trim();
+  if (!value || !Array.isArray(value.cities) || !value.cities.every(city =>
+    named(city) && typeof city.id === 'string' && city.id.trim() &&
+    Array.isArray(city.difficulties) && city.difficulties.every(difficulty =>
+      named(difficulty) && Number.isSafeInteger(difficulty.id) && difficulty.id > 0))) {
+    throw new ApiError('INVALID_CATALOG', 'El servidor devolvió un catálogo inválido.', true);
+  }
+  return value;
+}
 export function createRankedClient(fetcher = globalThis.fetch.bind(globalThis), uuid = () => crypto.randomUUID()) {
   const intents = new Map();
   async function request(path, body, keyed = true) {
@@ -33,7 +43,7 @@ export function createRankedClient(fetcher = globalThis.fetch.bind(globalThis), 
     }
   }
   return {
-    catalog: () => request('/catalog'),
+    catalog: async () => validateCatalog(await request('/catalog')),
     session: () => request('/session'),
     startSession: () => request('/session', {}, false),
     active: () => request('/games/active'),

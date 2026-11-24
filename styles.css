@@ -52,6 +52,8 @@ button[hidden] { display: none; }
 footer { display: flex; justify-content: space-between; gap: 14px; color: #95a6b0; font-size: 11px; padding-top: 18px; }
 .rankings-panel { padding: 20px; margin: 20px 0; border: 1px solid #34434b; border-radius: 18px; background: #17252e; overflow-wrap: anywhere; }
 .rankings-panel p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+.city-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; list-style: none; margin: 20px 0; padding: 0; }
+.city-list li { min-width: 0; padding: 18px; border: 1px solid #50616a; border-radius: 8px; background: #101d25; color: var(--accent); font-size: 18px; line-height: 1.5; overflow-wrap: anywhere; }
 .ranking-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
 .ranking-filters label { display: grid; gap: 8px; }
 .consent { display: flex; align-items: center; gap: 10px; margin: 16px 0; }
