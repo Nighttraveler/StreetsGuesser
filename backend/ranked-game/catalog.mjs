@@ -1,6 +1,6 @@
 import { readFileSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
-import { streetId } from '../game.mjs';
+import { streetId } from '../../frontend/game.mjs';
 import { digest } from './database.mjs';
 import { fail } from './errors.mjs';
 

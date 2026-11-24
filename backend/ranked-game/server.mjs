@@ -12,8 +12,8 @@ const app = createApplication({
   development, production: process.env.NODE_ENV === 'production', host,
   origin: process.env.RANKINGS_ORIGIN ?? `http://${host}:${port}`,
   dbPath, snapshotDir: `${dbPath}.datasets`, trustedProxy: process.env.RANKINGS_TRUSTED_PROXY,
-  staticRoot: development ? new URL('../', import.meta.url) : null,
-  registrations: [{ id: 'arrecifes', name: 'Arrecifes', path: new URL('../arrecifes_calles.json', import.meta.url) }],
+  staticRoot: development ? new URL('../../frontend/', import.meta.url) : null,
+  registrations: [{ id: 'arrecifes', name: 'Arrecifes', path: new URL('../../frontend/arrecifes_calles.json', import.meta.url) }],
 });
 app.server.listen(port, host, () => console.log(`Rankings API listening on ${host}:${port}`));
 let stopping = false;

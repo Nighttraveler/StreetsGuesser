@@ -5,9 +5,10 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { chromium } from 'playwright';
-import { createApplication } from '../ranked-game/http.mjs';
+import { createApplication } from '../backend/ranked-game/http.mjs';
 
 const root = new URL('../', import.meta.url);
+const frontendRoot = new URL('../frontend/', import.meta.url);
 const screenshots = new URL('test-results/', root);
 let app, browser, temporary, origin, catalog;
 before(async () => {
@@ -19,9 +20,9 @@ before(async () => {
   origin = `http://127.0.0.1:${port}`;
   // Explicit fixture registrations, never a runtime city fallback.
   app = createApplication({ development: true, host: '127.0.0.1', origin,
-    dbPath: join(temporary, 'test.sqlite'), snapshotDir: join(temporary, 'snapshots'), staticRoot: root,
+    dbPath: join(temporary, 'test.sqlite'), snapshotDir: join(temporary, 'snapshots'), staticRoot: frontendRoot,
     registrations: [{ id: 'arrecifes', name: 'Arrecifes' }, { id: 'fixture-city', name: 'Ciudad de prueba Ñ' }, { id: 'san-nicolas', name: 'San Nicolás' }]
-      .map(city => ({ ...city, path: new URL('arrecifes_calles.json', root) })),
+      .map(city => ({ ...city, path: new URL('arrecifes_calles.json', frontendRoot) })),
   });
   await new Promise(resolve => app.server.listen(port, '127.0.0.1', resolve));
   catalog = await (await fetch(`${origin}/api/v1/catalog`)).json();

@@ -7,7 +7,7 @@ Snapshot histórico obtenido y validado el 2026-11-19 UTC. Esta documentación s
 Directorio canónico actual: data/arrecifes/ relativo al repositorio StreetGuesser. No publicar este árbol.
 
 - city.json: identidad declarativa, relación urbana y punto de referencia lon/lat.
-- calles.json: contrato para el desarrollador, UTF-8 compacto, 114481 bytes. La copia pública generada arrecifes_calles.json sigue en la raíz, idéntica byte a byte; no editarla manualmente.
+- calles.json: contrato para el desarrollador, UTF-8 compacto, 114481 bytes. La copia pública generada frontend/arrecifes_calles.json es idéntica byte a byte; no editarla manualmente. Es la única copia pública y no es un symlink.
 - metadata.json: procedencia, hashes SHA-256, conteos y exclusiones individuales.
 - source.json: respuesta original Overpass con geometrías completas y versiones OSM.
 - limite.geojson: polígono exacto usado para recortar, WGS84.
@@ -83,7 +83,7 @@ Desde la raíz del checkout (los CLI resuelven configuración respecto al módul
 
    uv run extract_gis.py
    uv run test_gis.py
-   sha256sum arrecifes_calles.json
+   sha256sum frontend/arrecifes_calles.json
 
 SHA-256 esperado: ed1b5540bd2df7e3e98534675857ddcc2ebef21b0801a2ced47eaf6677567c5e
 SHA-256 fuente: 9db4231faf45553abb7e251670e958a3b7ae5772a223ff57c5208cc98965de40
@@ -117,7 +117,7 @@ Verificación actual reproducible, sin servicios externos:
    npm test
    npm run test:functional
 
-Las pruebas nuevas verifican ambas configuraciones por el mismo módulo, errores HTTP/timeout/red/JSON/remark/config, staging sin overwrite, procedencia, reproducción temporal con hashes y copia pública idénticos. HTTP raw/config devuelve 404. No se cambia app.mjs ni allowlist/imagen; únicamente el JSON raíz público se consume en producción.
+Las pruebas verifican ambas configuraciones por el mismo módulo, errores HTTP/timeout/red/JSON/remark/config, staging sin overwrite, procedencia, reproducción temporal con hashes y copia pública idénticos. HTTP raw/config devuelve 404. La reorganización separate-frontend-backend cambia únicamente la ruta física de publicación y sus referencias, no los algoritmos ni bytes GIS; la URL pública sigue siendo /arrecifes_calles.json.
 
 Cobertura explícita: agrupamiento de vías desconectadas; clasificación de las seis clases elegibles y rechazo de otras; mínimo nivel en clases mixtas; precisión decimal y eliminación de vértices colapsados; recorte con división en partes; nombres vacíos/marcadores; unicidad lógica, IDs y orden; validez y trazabilidad geométrica contra la fuente; ausencia de geometrías exactamente duplicadas (también invertidas); cobertura completa de vías fuente entre incluidas/excluidas; localidad distinta del partido; nombres de los tres ejemplos. Fixture sintético se usa solo en unit tests, nunca en la entrega.
 

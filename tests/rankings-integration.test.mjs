@@ -1,6 +1,5 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
@@ -9,13 +8,14 @@ import { tmpdir } from 'node:os';
 import { chromium } from 'playwright';
 
 const root = new URL('../', import.meta.url);
+const frontendRoot = new URL('../frontend/', import.meta.url);
 const backend = process.env.RANKINGS_BACKEND_ROOT
   ? pathToFileURL(`${resolve(process.env.RANKINGS_BACKEND_ROOT)}/ranked-game/http.mjs`)
-  : new URL('ranked-game/http.mjs', root);
+  : new URL('backend/ranked-game/http.mjs', root);
 
-test('real SQLite API + Chromium: two owners, full games, canonical conflict and ordered board', { skip: !existsSync(backend) && 'Backend not combined yet; set RANKINGS_BACKEND_ROOT' }, async () => {
+test('real SQLite API + Chromium: two owners, full games, canonical conflict and ordered board', async () => {
   const { createApplication } = await import(backend.href);
-  const data = JSON.parse(await readFile(new URL('arrecifes_calles.json', root)));
+  const data = JSON.parse(await readFile(new URL('arrecifes_calles.json', frontendRoot)));
   const temporary = await mkdtemp(join(process.env.TMPDIR || tmpdir(), 'rankings-ui-integration-'));
   const reservation = createServer();
   await new Promise(resolve => reservation.listen(0, '127.0.0.1', resolve));
@@ -23,8 +23,8 @@ test('real SQLite API + Chromium: two owners, full games, canonical conflict and
   await new Promise(resolve => reservation.close(resolve));
   const origin = `http://127.0.0.1:${port}`;
   const app = createApplication({ development: true, host: '127.0.0.1', origin,
-    dbPath: join(temporary, 'test.sqlite'), snapshotDir: join(temporary, 'snapshots'), staticRoot: root,
-    registrations: [{ id: 'arrecifes', name: 'Arrecifes', path: new URL('arrecifes_calles.json', root) }],
+    dbPath: join(temporary, 'test.sqlite'), snapshotDir: join(temporary, 'snapshots'), staticRoot: frontendRoot,
+    registrations: [{ id: 'arrecifes', name: 'Arrecifes', path: new URL('arrecifes_calles.json', frontendRoot) }],
   });
   let browser;
   try {

@@ -7,11 +7,11 @@ Ruta definitiva del juego: `/play.html`. Para el CTA Jugar del landing usar `hre
 - Navegación de documento completo, sin router ni fallback SPA. Entrada directa y recarga no requieren navegar primero por la portada. Recargar reinicia práctica local como antes; no se agrega persistencia.
 - Se conservan los imports y fetch relativos raíz: no se movió lógica ni GIS.
 
-Publicación estática mínima: index.html, play.html, styles.css, app.mjs, game.mjs, arrecifes_calles.json, juntos. Esta lista de seis sustituye la lista histórica de cinco de APP_README.md. No servir todo el checkout. Docker/serve_static.py conservan allowlist y práctica sin API; rankings-ui.mjs no está en esta imagen y su ausencia mantiene el fallback existente. Node ranked-game/http.mjs expone además los módulos/API de rankings como antes y agrega /play.html a su allowlist de desarrollo. No se actualizó producción ni systemd.
+Publicación estática mínima: index.html, play.html, styles.css, app.mjs, game.mjs, arrecifes_calles.json, juntos por basename desde frontend/. Esta lista de seis sustituye la lista histórica de cinco de APP_README.md. No servir todo el checkout. Docker/backend/serve_static.py conservan allowlist y práctica sin API; rankings-ui.mjs no está en esta imagen y su ausencia mantiene el fallback existente. Node backend/ranked-game/http.mjs expone además los módulos/API de rankings como antes y /play.html en su allowlist de desarrollo. No se actualizó producción ni systemd.
 
 Prueba local de práctica desde el worktree:
 
-    python3 -B -c 'from pathlib import Path; from serve_static import StaticServer; StaticServer(("127.0.0.1", 18094), Path.cwd()).serve_forever()'
+    python3 -B -c 'from pathlib import Path; from backend.serve_static import StaticServer; StaticServer(("127.0.0.1", 18094), Path.cwd() / "frontend").serve_forever()'
 
 Abrir http://127.0.0.1:18094/ y activar Jugar; abrir directamente http://127.0.0.1:18094/play.html, recargar, responder y volver a portada. Finalizar con Ctrl+C. Para clasificado usar composición documentada en RANKINGS_BACKEND.md, visitando /play.html en su mismo origen.
 

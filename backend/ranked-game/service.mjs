@@ -1,5 +1,5 @@
 import { randomUUID, randomInt } from 'node:crypto';
-import { matchesAnswer, updateState, streetId, selectStreet, hintFor } from '../game.mjs';
+import { matchesAnswer, updateState, streetId, selectStreet, hintFor } from '../../frontend/game.mjs';
 import { fail, fields, uuid, iso } from './errors.mjs';
 
 export const DAY = 86400000;

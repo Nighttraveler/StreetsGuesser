@@ -4,6 +4,10 @@ El único servicio, `web`, entrega seis activos: `index.html`, `play.html`, `sty
 
 ## Arranque y operación
 
+Ubicaciones vigentes (separate-frontend-backend): los seis activos fuente están en frontend/ y el lanzador en backend/serve_static.py. Docker los copia por basename al mismo docroot /srv/arrecifes/public/ y mantiene /srv/arrecifes/serve_static.py como entrypoint. No hay build frontend ni cambio del mecanismo de despliegue.
+
+Advertencia sobre configuración heredada: compose.yaml actualmente usa BIND_IP default 0.0.0.0 y red externa proxy con etiquetas Traefik. Eso contradice las descripciones históricas de loopback/bridge propia de esta guía. Esta mudanza NO modifica Compose ni certifica esa topología; revisar `docker compose --env-file /dev/null config` y no ejecutar operaciones de producción sin ventana autorizada. El runner tests/compose-smoke.sh sigue esperando el modelo antiguo y no se usa para certificar este candidato. Ver REPOSITORY_LAYOUT.md para build/smoke aislados sin proxy ni etiquetas productivas.
+
 Requisitos: Docker Engine operativo, complemento Docker Compose v2, acceso al daemon, puerto TCP libre y capacidad para una red bridge propia. Verificado en Linux arm64 con Engine 26.1.5 y Compose 2.26.1; no se ha verificado amd64. Usar un directorio de entrega aprobado, no el docroot del servicio legado. El primer build necesita acceso al registry de la base si no está disponible localmente. La base fijada en `Dockerfile` es:
 
 ```text
@@ -76,8 +80,11 @@ release_id=${id#sha256:}
 tag="arrecifes-de-memoria:release-$arch-$release_id"
 docker image tag "$id" "$tag"
 docker image save -o "$release/image.tar" "$tag"
-cp -- Dockerfile compose.yaml serve_static.py .dockerignore .env.example DEPLOYMENT.md "$release/"
-(sha256sum index.html styles.css game.mjs app.mjs arrecifes_calles.json) > "$release/statics.sha256"
+cp -- Dockerfile compose.yaml .dockerignore .env.example DEPLOYMENT.md "$release/"
+mkdir "$release/frontend" "$release/backend"
+cp -- frontend/index.html frontend/play.html frontend/styles.css frontend/game.mjs frontend/app.mjs frontend/arrecifes_calles.json "$release/frontend/"
+cp -- backend/serve_static.py "$release/backend/"
+(cd frontend; sha256sum index.html play.html styles.css game.mjs app.mjs arrecifes_calles.json) > "$release/statics.sha256"
 printf '%s\n' "$id" > "$release/image.id"
 printf '%s\n' "$arch" > "$release/image.arch"
 # Ajustar estos dos valores públicos al enlace comprobado del despliegue anterior.
@@ -118,7 +125,7 @@ set -euo pipefail
 umask 077
 unit=arrecifes-de-memoria.service
 legacy=/home/fer/projects/arrecifes-de-memoria-public
-files=(index.html styles.css game.mjs app.mjs arrecifes_calles.json)
+files=(index.html play.html styles.css game.mjs app.mjs arrecifes_calles.json)
 mkdir -p "$HOME/backups"
 backup=$(mktemp -d "$HOME/backups/arrecifes-systemd.XXXXXXXX")
 systemctl --user is-enabled "$unit" > "$backup/unit.enabled" || true
@@ -137,14 +144,17 @@ if test -s "$backup/unit/dropins.txt" && test -n "$(<"$backup/unit/dropins.txt")
   exit 1
 fi
 cp -a -- "$legacy" "$backup/public"
-cp -- Dockerfile compose.yaml serve_static.py .dockerignore .env.example DEPLOYMENT.md "$backup/deploy/"
-sha256sum -- "${files[@]}" > "$backup/statics.sha256"
+cp -- Dockerfile compose.yaml .dockerignore .env.example DEPLOYMENT.md "$backup/deploy/"
+mkdir "$backup/deploy/frontend" "$backup/deploy/backend"
+cp -- "${files[@]/#/frontend/}" "$backup/deploy/frontend/"
+cp -- backend/serve_static.py "$backup/deploy/backend/"
+(cd frontend; sha256sum -- "${files[@]}") > "$backup/statics.sha256"
 (cd "$legacy"; sha256sum -c "$backup/statics.sha256")
 (cd "$backup/public"; sha256sum -c "$backup/statics.sha256")
 printf 'Respaldo verificado: %s\n' "$backup"
 ```
 
-Si hay drop-ins, archivar individualmente los archivos listados conservando sus rutas (por ejemplo con `cp --parents` a `"$backup/unit"`) y revisar su contenido y precedencia antes de reanudar. Si difieren los hashes, no sobrescribir ninguna copia: decidir primero qué versión conservar. RPO: la última versión estática respaldada. RTO: no medido. Al recargar, una partida abierta se pierde igual que antes; no hay estados de servidor que exportar.
+Si el legado aún tiene cinco activos o bytes de otra versión, la comparación de los seis actuales abortará: no sobrescribirlo automáticamente ni ejecutar el corte sin reconciliación aprobada. Si hay drop-ins, archivar individualmente los archivos listados conservando sus rutas (por ejemplo con `cp --parents` a `"$backup/unit"`) y revisar su contenido y precedencia antes de reanudar. Si difieren los hashes, no sobrescribir ninguna copia: decidir primero qué versión conservar. RPO: la última versión estática respaldada. RTO: no medido. Al recargar, una partida abierta se pierde igual que antes; no hay estados de servidor que exportar.
 
 **Preparar antes de detener systemd:** ejecutar el ensayo anterior completo. Confirmar la IP LAN vigente y la disponibilidad de red para el proyecto definitivo. Definir y preservar configuración explícita, registrar el ID de la imagen y construir mientras sigue activo el servidor legado. Si el host requiere archivo complementario de red, agregar su `-f` al arreglo `deploy` antes de empezar y respaldarlo.
 

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const root = new URL('../', import.meta.url);
+const root = new URL('../frontend/', import.meta.url);
 test('home document has a native game link and no game runtime or controls', async () => {
   const home = await readFile(new URL('index.html', root), 'utf8');
   assert.match(home, /<a\b[^>]*href="\.\/play\.html"[^>]*>Jugar<\/a>/);

@@ -6,27 +6,18 @@ Entrega de implementación de t_edec234d. Revisión independiente y servidor per
 
 ## Entrada y archivos publicables
 
-Directorio fuente absoluto: `/home/fer/projects/juego-calles-arrecifes`.
-Entrada: `/home/fer/projects/juego-calles-arrecifes/index.html`.
+Repositorio: `/home/fer/projects/StreetGuesser`; trabajar desde la raíz del worktree propio. Entrada fuente: `frontend/index.html`, juego: `frontend/play.html`.
 
-Publicar **únicamente estos cinco archivos**, juntos en la raíz de un directorio dedicado:
-
-1. `/home/fer/projects/juego-calles-arrecifes/index.html`
-2. `/home/fer/projects/juego-calles-arrecifes/styles.css`
-3. `/home/fer/projects/juego-calles-arrecifes/game.mjs`
-4. `/home/fer/projects/juego-calles-arrecifes/app.mjs`
-5. `/home/fer/projects/juego-calles-arrecifes/arrecifes_calles.json`
+Publicar únicamente los seis activos de práctica de frontend/: index.html, play.html, styles.css, game.mjs, app.mjs y arrecifes_calles.json, juntos por basename en la raíz HTTP. El servidor Node de desarrollo publica además rankings-ui.mjs y ranked-game-client.mjs. Los servicios están en backend/ y las fuentes/derivados canónicos en data/. Ver REPOSITORY_LAYOUT.md para el mapa, comandos y verificaciones actuales; los apartados de evidencia histórica conservan sus rutas originales.
 
 No copiar ni servir el directorio de trabajo entero: contiene fuente raw OSM, metadatos, herramientas, pruebas y node_modules que no necesita el juego. No requiere build, npm ni Python en el cliente. npm/Playwright se usan únicamente para pruebas. No usa CDN, fuentes remotas, mapas externos, claves, almacenamiento remoto ni cookies. Los enlaces visibles de atribución solo abren la web OSM si el usuario los pulsa.
 
 Ejemplo de preparación y prueba local para QA (sin persistencia; elegir un directorio nuevo y un puerto libre):
 
-    cd /home/fer/projects/juego-calles-arrecifes
-    mkdir /home/fer/projects/juego-calles-arrecifes-public
-    cp index.html styles.css game.mjs app.mjs arrecifes_calles.json /home/fer/projects/juego-calles-arrecifes-public/
-    python3 -m http.server 8080 --bind 127.0.0.1 --directory /home/fer/projects/juego-calles-arrecifes-public
+    # Desde la raíz del worktree, sin copiar al docroot activo:
+    python3 -B -c 'from pathlib import Path; from backend.serve_static import StaticServer; StaticServer(("127.0.0.1", 18093), Path.cwd() / "frontend").serve_forever()'
 
-Abrir `http://127.0.0.1:8080/` en ese equipo, no `file://`. Para celular, QA debe verificar IP LAN y servicio persistente siguiendo su tarjeta; esta etapa no publica en LAN ni configura servicios. No se afirma una prueba desde otro dispositivo.
+Abrir `http://127.0.0.1:18093/` en ese equipo, no `file://`. Para celular, QA debe verificar IP LAN y servicio persistente siguiendo su tarjeta; esta etapa no publica en LAN ni configura servicios. No se afirma una prueba desde otro dispositivo.
 
 La aplicación solicita `./arrecifes_calles.json` desde el mismo origen que el índice, también funciona bajo un subdirectorio HTTP. El servidor debe servir `.mjs` como JavaScript (`text/javascript` o `application/javascript`); Python http.server lo soporta. Si falla la carga, muestra la causa HTTP/formato/timeout y un botón de reintento, sin datos ficticios.
 
@@ -34,7 +25,7 @@ La aplicación solicita `./arrecifes_calles.json` desde el mismo origen que el �
 
 Se consume el array GIS intacto, no GeoJSON; cada `segmentos[].coordenadas` en [lon, lat] es un path SVG separado. Son 173 entidades / 407 segmentos. Norte arriba, proyección local equirectangular corregida por coseno de latitud central; adecuada para reconocimiento urbano, no navegación. Sin nombres en el SVG ni mosaicos. © OpenStreetMap contributors, ODbL, visible en el mapa.
 
-Consultar `/home/fer/projects/juego-calles-arrecifes/GIS_README.md` para trazabilidad y limitaciones de cobertura. SHA-256 original conservado:
+Consultar GIS_README.md para trazabilidad y limitaciones de cobertura. SHA-256 original conservado:
 
     ed1b5540bd2df7e3e98534675857ddcc2ebef21b0801a2ced47eaf6677567c5e
 
@@ -56,15 +47,15 @@ El nombre canónico es `Avenida Carlos Merlassino`. Se aceptan explícitamente `
 
 ## Pruebas reproducibles
 
-Desde `/home/fer/projects/juego-calles-arrecifes` con Node 22+, Chromium y uv para GIS:
+Desde la raíz del worktree StreetGuesser con Node 22+, Chromium y uv para GIS:
 
     npm ci --ignore-scripts --no-audit --no-fund
     npm test
     npm run test:functional
-    node --check app.mjs
-    node --check game.mjs
+    node --check frontend/app.mjs
+    node --check frontend/game.mjs
     uv run --offline test_gis.py
-    sha256sum arrecifes_calles.json
+    sha256sum frontend/arrecifes_calles.json
     npm audit --omit=optional
 
 Playwright está fijado en package-lock.json. Usa `/usr/bin/chromium` (override `CHROMIUM_PATH`); en esta Pi se ejecutó Chromium 151.0.7922.173. Los argumentos `--no-sandbox` y `--disable-dev-shm-usage` son exclusivamente del runner local de pruebas; no configuran el navegador del jugador. La primera instalación de tooling requiere npm/red; el juego no.
@@ -101,17 +92,17 @@ Los botones +/−, Vista general y Ver calle siguen disponibles.
 
 Prueba manual para QA:
 
-1. Desde la raíz del worktree, servir únicamente los cinco activos mediante
+1. Desde la raíz del worktree, servir únicamente los seis activos mediante
    la clase allowlist existente (puerto de prueba libre, sin servicio persistente):
 
-       python3 -c 'from pathlib import Path; from serve_static import StaticServer; StaticServer(("127.0.0.1", 18093), Path.cwd()).serve_forever()'
+       python3 -B -c 'from pathlib import Path; from backend.serve_static import StaticServer; StaticServer(("127.0.0.1", 18093), Path.cwd() / "frontend").serve_forever()'
 
    Abrir `http://127.0.0.1:18093/`; finalizar con Ctrl+C. El catálogo y clasificado
    no están disponibles en este modo de práctica. Para un teléfono físico, QA
    deberá configurar explícitamente acceso de prueba LAN; loopback no es accesible
    desde otro dispositivo. Alternativa con API: RANKINGS_BACKEND.md. No servir todo
    el repositorio con un servidor genérico ni modificar el servicio productivo.
-2. Abrir `/`, bajar hasta el mapa de práctica y esperar la calle verde. Arrastrar
+2. Abrir `/play.html` y esperar la calle verde. Arrastrar
    desde el centro con un dedo, sin levantarlo, a derecha, abajo, izquierda,
    arriba y diagonalmente; repetir tras soltar. El mapa debe seguir el dedo y
    la página permanecer quieta. Repetir tras Vista general y +/−.

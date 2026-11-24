@@ -1,8 +1,8 @@
 // Test-only independent SQLite writer. Never exposed by the HTTP allowlist.
-import { Store } from '../ranked-game/database.mjs';
-import { Catalog } from '../ranked-game/catalog.mjs';
-import { Games } from '../ranked-game/service.mjs';
-import { Rankings } from '../rankings/service.mjs';
+import { Store } from '../backend/ranked-game/database.mjs';
+import { Catalog } from '../backend/ranked-game/catalog.mjs';
+import { Games } from '../backend/ranked-game/service.mjs';
+import { Rankings } from '../backend/rankings/service.mjs';
 const [dbPath, snapshotDir, time] = process.argv.slice(2);
 const store = new Store(dbPath);
 const clock = () => Number(time);

@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { normalizeName, matchesAnswer, selectStreet, initialState, updateState, hintFor, isMapDrag, panView, streetId, getProgress, nextLevel } from '../game.mjs';
-const streets = JSON.parse(await readFile(new URL('../arrecifes_calles.json', import.meta.url)));
+import { normalizeName, matchesAnswer, selectStreet, initialState, updateState, hintFor, isMapDrag, panView, streetId, getProgress, nextLevel } from '../frontend/game.mjs';
+const streets = JSON.parse(await readFile(new URL('../frontend/arrecifes_calles.json', import.meta.url)));
 
 test('umbral euclidiano de arrastre en píxeles CSS, inclusive y simétrico', () => {
   assert.equal(isMapDrag(0, 0), false);

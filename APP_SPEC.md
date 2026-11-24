@@ -2,6 +2,8 @@
 
 Alcance de t_edec234d, proyecto independiente de Lawyers Hub, sin repositorio Git.
 
+Actualización estructural separate-frontend-backend: el inventario anterior a Git es histórico; frontend/ contiene los ocho activos de interfaz, backend/ los servicios y data/ conserva sus fuentes y derivados canónicos. Publicación vigente: seis activos de práctica por basename desde frontend/, incluido play.html. El juego está en /play.html y la portada independiente en /. Ver REPOSITORY_LAYOUT.md; no cambian reglas ni contrato HTTP por el traslado.
+
 - Aplicación estática ES modules, HTML y CSS locales, datos reales por fetch('./arrecifes_calles.json'), sin servicios externos, fuentes remotas ni mosaicos. No modificar GIS.
 - SVG con proyección equirectangular local (longitud escalada por coseno de latitud central, norte arriba), todos los segmentos independientes; mapa mudo. Calle activa resaltada completa. Zoom interpolado al encuadre de todos sus tramos, sin animación con prefers-reduced-motion. Controles de acercar, alejar y vista general para contexto.
 - Tres niveles no acumulativos según nivel del JSON. Selección uniforme mediante Math.random, evitando repetición inmediata si hay alternativa. Cambio de nivel reinicia puntos y racha, claramente indicado.

@@ -45,6 +45,8 @@ Dataset público y código abierto permiten resolver automáticamente las pregun
 
 ## 4. Límites del módulo y ownership
 
+Actualización de ubicaciones, OpenSpec separate-frontend-backend: rankings/ y ranked-game/ de esta sección viven ahora bajo backend/, con su migración SQL intacta. Los módulos de interfaz y el único game.mjs están en frontend/; el adaptador backend importa ../../frontend/game.mjs. API, reglas y ownership no cambian. El inventario de §1 es evidencia histórica previa a implementar rankings, no inventario vigente. Ver REPOSITORY_LAYOUT.md.
+
 - rankings/: dominio de nombres/publicación/consulta, repositorio SQLite y handlers HTTP. Sin DOM, sin selección de calles ni cálculo de puntos.
 - ranked-game/: identidad/sesiones, catálogo inmutable, motor de partidas/acciones, adaptador que importa game.mjs (matchesAnswer, updateState, streetId, selectStreet, hintFor). No duplicar normalización de respuestas en otro lenguaje.
 - Interfaz interna VerifiedGameReader.getCompletedOwned(gameId, playerId, transaction) retorna resultado inmutable con city/difficulty/versions/score/completed_at/solved_count/total, o error tipado. Solo acceso interno; no endpoint de importación de resultados.

@@ -4,17 +4,18 @@ from pathlib import Path
 from threading import Thread
 import unittest
 
-from serve_static import StaticServer
+from backend.serve_static import StaticServer
 
 
 ROOT = Path(__file__).resolve().parents[1]
+FRONTEND = ROOT / 'frontend'
 
 
 class StaticServerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # El checkout contiene archivos privados: deben seguir siendo inaccesibles.
-        cls.server = StaticServer(("127.0.0.1", 0), ROOT)
+        cls.server = StaticServer(("127.0.0.1", 0), FRONTEND)
         cls.thread = Thread(target=cls.server.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
         cls.thread.start()
 
@@ -49,7 +50,7 @@ class StaticServerTests(unittest.TestCase):
                 self.assertEqual(headers["Content-Type"], mime)
                 self.assertEqual(headers["Cache-Control"], "no-cache")
                 self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
-                self.assertEqual(body, (ROOT / file).read_bytes())
+                self.assertEqual(body, (FRONTEND / file).read_bytes())
                 self.assertEqual(headers["Content-Length"], str(len(body)))
 
     def test_head_has_get_headers_and_no_body(self):
@@ -62,7 +63,8 @@ class StaticServerTests(unittest.TestCase):
 
     def test_private_or_unknown_paths_never_read_from_checkout(self):
         for path in ("/package.json", "/serve_static.py", "/tests/", "/.env", "/missing",
-                     "/data/arrecifes/source.json", "/data/arrecifes/city.json"):
+                     "/data/arrecifes/source.json", "/data/arrecifes/city.json",
+                     "/frontend/index.html", "/backend/serve_static.py", "/backend/", "/frontend/"):
             with self.subTest(path=path):
                 status, _, body = self.request("GET", path)
                 self.assertEqual(status, 404)
@@ -71,4 +73,4 @@ class StaticServerTests(unittest.TestCase):
     def test_unsupported_method_does_not_serve_asset(self):
         status, _, body = self.request("POST", "/app.mjs")
         self.assertEqual(status, 501)
-        self.assertNotEqual(body, (ROOT / "app.mjs").read_bytes())
+        self.assertNotEqual(body, (FRONTEND / "app.mjs").read_bytes())

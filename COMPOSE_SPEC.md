@@ -6,6 +6,8 @@ Actualización t_2d0104cf, OpenSpec `separate-game-route`: el conjunto publicabl
 
 ## 1. Inventario verificado
 
+Actualización estructural t_c591d950, OpenSpec `separate-frontend-backend`: las fuentes publicables viven en frontend/ y el lanzador en backend/serve_static.py. Docker conserva seis basenames en /srv/arrecifes/public/ y el entrypoint /srv/arrecifes/serve_static.py, mediante COPY y contexto explícitos; no cambia runtime ni allowlist HTTP. compose.yaml se conserva íntegro, incluido su bind default 0.0.0.0 y red externa proxy actuales: las secciones históricas de bridge propia/loopback no describen ese archivo vigente. No ejecutar el runner Compose histórico esperando ese modelo; ver GAME_ROUTE.md y REPOSITORY_LAYOUT.md para ensayo aislado. No se autoriza despliegue.
+
 - Fuente: `/home/fer/projects/juego-calles-arrecifes`; no es un repositorio Git (git status falla por ausencia de .git). No inicializar Git como parte de este cambio.
 - Unidad de usuario habilitada: `/home/fer/.config/systemd/user/arrecifes-de-memoria.service`. Líneas 5–9: Type=simple, ExecStart directo, Restart=on-failure, RestartSec=2. Líneas 3 y 12: After=network-online.target y WantedBy=default.target.
 - Comando real (línea 7): `/usr/bin/python3 -m http.server 8090 --bind 192.168.0.105 --directory /home/fer/projects/arrecifes-de-memoria-public`.

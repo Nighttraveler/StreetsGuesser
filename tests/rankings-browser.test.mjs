@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
-import { streetId } from '../game.mjs';
+import { streetId } from '../frontend/game.mjs';
 
 // Explicit synthetic API fixtures for UI testing, not a scoring server or production fallback.
-const root = new URL('../', import.meta.url);
+const root = new URL('../frontend/', import.meta.url);
 const data = JSON.parse(await readFile(new URL('arrecifes_calles.json', root)));
 const gameId = '00000000-0000-4000-8000-000000000010';
 const roundId = '00000000-0000-4000-8000-000000000011';

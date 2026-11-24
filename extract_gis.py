@@ -186,7 +186,7 @@ def transform_city(city, directory, *, public_path=None):
     outputs = {directory / 'calles.json': streets, directory / 'limite.geojson': limit,
                directory / 'metadata.json': encoded(metadata)}
     if public_path is not None:
-        if directory != (ROOT / 'data/arrecifes').resolve() or city.slug != 'arrecifes' or Path(public_path) != ROOT / 'arrecifes_calles.json':
+        if directory != (ROOT / 'data/arrecifes').resolve() or city.slug != 'arrecifes' or Path(public_path) != ROOT / 'frontend' / 'arrecifes_calles.json':
             raise DownloadError('config', 'Only canonical compatibility execution may publish')
         outputs[Path(public_path)] = streets
     publish_prepared(outputs)
@@ -207,7 +207,7 @@ def main(argv=None):
             data_root = (ROOT / 'data').resolve()
             if directory.is_relative_to(data_root) or data_root.is_relative_to(directory):
                 raise DownloadError('config', '--input-dir must be outside canonical data')
-        public = ROOT / 'arrecifes_calles.json' if args.input_dir is None and slug == 'arrecifes' else None
+        public = ROOT / 'frontend' / 'arrecifes_calles.json' if args.input_dir is None and slug == 'arrecifes' else None
         metadata = transform_city(city, directory, public_path=public)
         print(json.dumps({k: v for k, v in metadata.items() if k != 'exclusiones'}, ensure_ascii=False, indent=2))
         return 0

@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createInterface } from 'node:readline';
 import { copyFile, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -16,13 +16,14 @@ test('real static six-asset server: isolated home and practice without rankings 
   let server, browser;
   try {
     const dockerfile = await readFile(new URL('Dockerfile', root), 'utf8');
-    const assets = dockerfile.match(/^COPY (.+) \/srv\/arrecifes\/public\/$/m)[1].split(' ');
+    const sources = dockerfile.match(/^COPY (.+) \/srv\/arrecifes\/public\/$/m)[1].split(' ');
+    const assets = sources.map(source => basename(source));
     assert.deepEqual([...assets].sort(), ['app.mjs', 'arrecifes_calles.json', 'game.mjs', 'index.html', 'play.html', 'styles.css']);
-    for (const asset of assets) await copyFile(new URL(asset, root), join(temporary, asset));
+    for (const source of sources) await copyFile(new URL(source, root), join(temporary, basename(source)));
     assert.deepEqual((await readdir(temporary)).sort(), [...assets].sort());
     // Import the actual production handler; only the bind port and asset directory differ.
     server = spawn('python3', ['-B', '-u', '-c',
-      'from pathlib import Path; import sys; from serve_static import StaticServer; server = StaticServer(("127.0.0.1", 0), Path(sys.argv[1])); print(server.server_port, flush=True); server.serve_forever()', temporary],
+      'from pathlib import Path; import sys; from backend.serve_static import StaticServer; server = StaticServer(("127.0.0.1", 0), Path(sys.argv[1])); print(server.server_port, flush=True); server.serve_forever()', temporary],
     { cwd: fileURLToPath(root), stdio: ['ignore', 'pipe', 'pipe'] });
     let logs = '';
     server.stderr.on('data', chunk => { logs += chunk; });
@@ -32,7 +33,7 @@ test('real static six-asset server: isolated home and practice without rankings 
       once(server, 'exit').then(([code]) => { throw new Error(`Static server exited ${code}: ${logs}`); }),
     ]);
     const origin = `http://127.0.0.1:${port}`;
-    for (const path of ['/rankings-ui.mjs', '/ranked-game-client.mjs', '/api/v1/cities', '/package.json', '/serve_static.py', '/.env', '/tests/', '/missing']) {
+    for (const path of ['/rankings-ui.mjs', '/ranked-game-client.mjs', '/api/v1/cities', '/package.json', '/serve_static.py', '/.env', '/tests/', '/missing', '/frontend/index.html', '/backend/serve_static.py', '/data/arrecifes/source.json']) {
       assert.equal((await fetch(`${origin}${path}`)).status, 404, path);
     }
     browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
@@ -65,7 +66,7 @@ test('real static six-asset server: isolated home and practice without rankings 
     assert.equal(await page.locator('#cities-list li').count(), 0);
     assert.equal(await page.locator('#cities-list').getAttribute('aria-busy'), 'false');
     assert.equal(await page.locator('#cities-retry').isDisabled(), true);
-    const data = JSON.parse(await readFile(new URL('arrecifes_calles.json', root)));
+    const data = JSON.parse(await readFile(new URL('frontend/arrecifes_calles.json', root)));
     const index = Number(await page.locator('g:has(path.active)').getAttribute('data-street-index'));
     await page.locator('#answer').fill(data[index].nombre);
     await page.locator('#submit').click();

@@ -9,11 +9,11 @@ import { backup } from 'node:sqlite';
 import { fork, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { request as httpRequest } from 'node:http';
-import { createApplication, validateConfig } from '../ranked-game/http.mjs';
-import { Store, digest } from '../ranked-game/database.mjs';
-import { normalizeUsername } from '../rankings/validation.mjs';
-import { streetId } from '../game.mjs';
-import { DAY } from '../ranked-game/service.mjs';
+import { createApplication, validateConfig } from '../backend/ranked-game/http.mjs';
+import { Store, digest } from '../backend/ranked-game/database.mjs';
+import { normalizeUsername } from '../backend/rankings/validation.mjs';
+import { streetId } from '../frontend/game.mjs';
+import { DAY } from '../backend/ranked-game/service.mjs';
 
 // Deliberately synthetic, never installed in the production catalog.
 const streets = [
@@ -33,7 +33,7 @@ async function harness(t, overrides = {}) {
   let now = 1700000000000;
   const config = { development: true, host: '127.0.0.1', origin: `http://127.0.0.1:${port}`,
     dbPath: join(dir, 'state.db'), snapshotDir: join(dir, 'snapshots'), clock: () => now,
-    staticRoot: new URL('../', import.meta.url),
+    staticRoot: new URL('../frontend/', import.meta.url),
     registrations: [{ id: 'arrecifes', name: 'Arrecifes', path: fixture }, { id: 'synthetic-city', name: 'Synthetic fixture', path: fixture }], ...overrides };
   let app;
   async function start() {
@@ -304,7 +304,7 @@ test('persistencia, migración repetida, transacción rollback y backup/restaura
   assert.equal(restored.get('SELECT COUNT(*) AS n FROM leaderboard_entries').n, 1);
   assert.equal(restored.get('PRAGMA integrity_check').integrity_check, 'ok');
   assert.deepEqual(restored.all('PRAGMA foreign_key_check'), []); restored.close();
-  await promisify(execFile)(process.execPath, ['--experimental-sqlite', new URL('../ranked-game/backup.mjs', import.meta.url).pathname, h.config.dbPath, join(h.dir, 'cli-backup.db')]);
+  await promisify(execFile)(process.execPath, ['--experimental-sqlite', new URL('../backend/ranked-game/backup.mjs', import.meta.url).pathname, h.config.dbPath, join(h.dir, 'cli-backup.db')]);
   const cliBackup = new Store(join(h.dir, 'cli-backup.db'));
   assert.equal(cliBackup.get('SELECT COUNT(*) AS n FROM submissions').n, 1); cliBackup.close();
   await h.restart();
@@ -421,7 +421,7 @@ test('límite de creación por IP y cookie de producción solo tras proxy TLS co
 });
 
 test('dataset real: versión hash, IDs únicos, completar fácil 15/15 por API', async t => {
-  const realPath = new URL('../arrecifes_calles.json', import.meta.url);
+  const realPath = new URL('../frontend/arrecifes_calles.json', import.meta.url);
   const bytes = await readFile(realPath); const real = JSON.parse(bytes);
   const h = await harness(t, { registrations: [{ id: 'arrecifes', name: 'Arrecifes', path: realPath }] });
   const p = await h.player(); let game = await h.game(p); const solved = new Set();
@@ -456,7 +456,7 @@ test('ejecutable de API: SIGTERM/reinicio preserva sesión, partida y publicaci�
   const origin = `http://127.0.0.1:${port}`;
   let child;
   async function start() {
-    child = fork(new URL('../ranked-game/server.mjs', import.meta.url), [], { silent: true, execArgv: ['--experimental-sqlite'],
+    child = fork(new URL('../backend/ranked-game/server.mjs', import.meta.url), [], { silent: true, execArgv: ['--experimental-sqlite'],
       env: { ...process.env, NODE_ENV: 'test', RANKINGS_DEVELOPMENT: '1', RANKINGS_HOST: '127.0.0.1', RANKINGS_PORT: String(port), RANKINGS_ORIGIN: origin, RANKINGS_DB: join(dir, 'state.db') } });
     await new Promise((resolve, reject) => {
       let output = '';
@@ -484,7 +484,7 @@ test('ejecutable de API: SIGTERM/reinicio preserva sesión, partida y publicaci�
   await stop(); await start();
   assert.equal((await request('/session')).body.player.id, player.body.player.id);
   assert.equal((await request('/games/active')).body.game.id, game.id);
-  const real = JSON.parse(await readFile(new URL('../arrecifes_calles.json', import.meta.url)));
+  const real = JSON.parse(await readFile(new URL('../frontend/arrecifes_calles.json', import.meta.url)));
   while (game.status === 'active') {
     if (game.round.resolved) game = (await request(`/games/${game.id}/actions`, { round_id: game.round.id, type: 'next' })).body.game;
     const answer = real.find(item => streetId(item) === game.round.street_id).nombre;

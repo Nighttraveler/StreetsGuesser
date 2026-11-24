@@ -6,13 +6,13 @@ Contrato: RANKINGS_SPEC.md; OpenSpec add-city-difficulty-rankings, incorporado y
 
 Validado en Linux ARM64 con Node 22.22.3 y SQLite nativo 3.51.3. No se agregaron paquetes runtime. `node:sqlite` sigue siendo experimental en Node 22 y necesita `--experimental-sqlite` (incluido en scripts npm). Se requiere Node >=22.22; usar la versión probada para reproducir.
 
-Desde el worktree integrado con UI:
+Desde la raíz del worktree integrado con UI (servicios en backend/, estáticos en frontend/; ver REPOSITORY_LAYOUT.md):
 
     RANKINGS_DEVELOPMENT=1 RANKINGS_DB=/ruta/privada/rankings/state.db npm run start:rankings
 
 Escucha por defecto en 127.0.0.1:8081, origen exacto http://127.0.0.1:8081. RANKINGS_HOST, RANKINGS_PORT y RANKINGS_ORIGIN permiten configurar explícitamente otro loopback/puerto; no mezclar localhost y 127.0.0.1. El directorio privado debe estar fuera del árbol público, ser persistente y tener permisos 0700. Los tests usan TMPDIR del agente y eliminan sus fixtures.
 
-El harness sirve exclusivamente index.html, styles.css, app.mjs, game.mjs, arrecifes_calles.json, rankings-ui.mjs y ranked-game-client.mjs (los dos últimos los entrega la tarjeta UI); también `/api/v1`. Si un activo UI todavía no existe devuelve 404, no un módulo vacío ni éxito ficticio. Nunca publica código backend, DB, pruebas, Git o documentación. El modo práctica no necesita la API. SIGTERM/SIGINT cierran HTTP y SQLite limpiamente.
+El harness sirve exclusivamente index.html, play.html, styles.css, app.mjs, game.mjs, arrecifes_calles.json, rankings-ui.mjs y ranked-game-client.mjs desde frontend/ en URLs raíz; también `/api/v1`. Si un activo UI no existe devuelve 404, no un módulo vacío ni éxito ficticio. Nunca publica código backend, DB, pruebas, Git o documentación. El modo práctica no necesita la API. SIGTERM/SIGINT cierran HTTP y SQLite limpiamente.
 
 ## Configuración de producción (sin despliegue)
 
@@ -24,7 +24,7 @@ Dockerfile, compose.yaml, serve_static.py, systemd y el directorio público exte
 
 ## Datos y migraciones
 
-`ranked-game/database.mjs` abre una conexión síncrona de un único proceso escritor. Cada conexión activa foreign_keys, WAL y busy_timeout=5000. Migración 001-rankings.sql transaccional con checksum en schema_migrations; un segundo arranque no la vuelve a aplicar y un checksum diferente se rechaza. Fallos de negocio revierten nombre, submission, mejor marca y respuesta de idempotencia juntos. SQLITE_BUSY agotado produce 503 RETRY_LATER y Retry-After: 1. El proceso síncrono puede esperar hasta cinco segundos; no escalar a múltiples réplicas sobre un volumen compartido/NFS.
+`backend/ranked-game/database.mjs` abre una conexión síncrona de un único proceso escritor. Cada conexión activa foreign_keys, WAL y busy_timeout=5000. Migración 001-rankings.sql transaccional con checksum en schema_migrations; un segundo arranque no la vuelve a aplicar y un checksum diferente se rechaza. Fallos de negocio revierten nombre, submission, mejor marca y respuesta de idempotencia juntos. SQLITE_BUSY agotado produce 503 RETRY_LATER y Retry-After: 1. El proceso síncrono puede esperar hasta cinco segundos; no escalar a múltiples réplicas sobre un volumen compartido/NFS.
 
 El servidor registra solo Arrecifes y sus dificultades presentes. `Catalog` recibe registros administrativos internos, nunca rutas del formulario. Valida IDs OSM únicos y reglas soportadas (versión 1). Copia bytes exactos a RANKINGS_DB.datasets/<sha256>.json y conserva snapshots históricos privados. Comprueba el hash al arrancar. El registro configurado es la fuente de activación al iniciar: cambiar versión exige cambiar el registro administrativo, no solamente hacer UPDATE transitorio a boards (el próximo inicio volvería a aplicar la configuración). No hay endpoint administrativo de carga/activación ni se importa el descargador paralelo. La segunda ciudad en tests es explícitamente sintética y no se registra en el ejecutable.
 
@@ -36,7 +36,7 @@ No se migran datos de práctica ni existe DB anterior que convertir. No hay down
 
 Con un directorio destino privado previamente creado:
 
-    node --experimental-sqlite ranked-game/backup.mjs /ruta/privada/state.db /ruta/backup/nuevo.db
+    node --experimental-sqlite backend/ranked-game/backup.mjs /ruta/privada/state.db /ruta/backup/nuevo.db
 
 Usa SQLite backup online y verifica integrity_check/foreign_key_check; rechaza destino existente. No copiar solo .db mientras WAL esté activo. Conservar también todos los snapshots inmutables .db.datasets: contienen las versiones históricas que la DB referencia. La restauración probada es local preservando las rutas absolutas de snapshots. Para otro host/directorio, detener la API, restaurar snapshots y remapear datasets.immutable_path por operación administrativa revisada antes de arrancar; no mover solo la DB ni perder el WAL de la fuente. Hacer una restauración de ensayo antes de una activación productiva.
 
@@ -45,7 +45,7 @@ Usa SQLite backup online y verifica integrity_check/foreign_key_check; rechaza d
     npm ci --ignore-scripts
     npm test
     npm run test:functional
-    node --experimental-sqlite --test --experimental-test-coverage --test-coverage-include='ranked-game/*.mjs' --test-coverage-include='rankings/*.mjs' tests/sqlite-runtime.test.mjs tests/rankings.test.mjs
+    node --experimental-sqlite --test --experimental-test-coverage --test-coverage-include='backend/ranked-game/*.mjs' --test-coverage-include='backend/rankings/*.mjs' tests/sqlite-runtime.test.mjs tests/rankings.test.mjs
     make openspec-validate CHANGE=add-city-difficulty-rankings
     openspec validate --all --strict --no-interactive
     make openspec-guard-test

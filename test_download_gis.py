@@ -165,7 +165,7 @@ class DownloadTests(unittest.TestCase):
             self.assertFalse(other.exists())
 
     def test_cli_errors_leave_canonical_and_public_unchanged(self):
-        paths = list((ROOT / 'data/arrecifes').iterdir()) + [ROOT / 'arrecifes_calles.json']
+        paths = list((ROOT / 'data/arrecifes').iterdir()) + [ROOT / 'frontend' / 'arrecifes_calles.json']
         before = {p: p.read_bytes() for p in paths}
         with tempfile.TemporaryDirectory() as tmp:
             for code, status in [('http', 406), ('http', 429), ('http', 500), ('timeout', None), ('transport', None)]:

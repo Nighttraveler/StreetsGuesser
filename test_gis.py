@@ -157,8 +157,8 @@ class GIS(unittest.TestCase):
                   'metadata.json': '31bf7646d5259615df9e3ef1b175c19a738a7e6cc0a5901b474fba93f1412de7'}
         for name, digest in hashes.items():
             self.assertEqual(hashlib.sha256((DATA / name).read_bytes()).hexdigest(), digest)
-        self.assertFalse((ROOT / 'arrecifes_calles.json').is_symlink())
-        self.assertEqual((DATA / 'calles.json').read_bytes(), (ROOT / 'arrecifes_calles.json').read_bytes())
+        self.assertFalse((ROOT / 'frontend' / 'arrecifes_calles.json').is_symlink())
+        self.assertEqual((DATA / 'calles.json').read_bytes(), (ROOT / 'frontend' / 'arrecifes_calles.json').read_bytes())
         with tempfile.TemporaryDirectory() as tmp:
             staging = Path(tmp) / 'staging'
             result = download_city(self.city, transport=lambda _: (DATA / 'source.json').read_bytes())

@@ -6,7 +6,7 @@ import { chromium } from 'playwright';
 
 const origin = new URL(process.env.COMPOSE_SMOKE_ORIGIN || 'http://127.0.0.1:18090').origin;
 assert.match(origin, /^http:\/\/127\.0\.0\.1:\d+$/, 'el smoke solo acepta un puerto HTTP loopback');
-const root = new URL('../', import.meta.url);
+const root = new URL('../frontend/', import.meta.url);
 const files = new Map([
   ['play.html', 'text/html'],
   ['index.html', 'text/html'], ['styles.css', 'text/css'], ['app.mjs', 'application/javascript'],

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateCatalog } from '../ranked-game-client.mjs';
+import { validateCatalog } from '../frontend/ranked-game-client.mjs';
 
 const city = { id: 'fixture-city', name: '<b>Ciudad</b> Ñ', difficulties: [{ id: 1, name: 'Fácil' }] };
 test('catalog validation preserves exact names, order, all cities and empty results', () => {

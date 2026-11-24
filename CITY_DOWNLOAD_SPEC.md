@@ -41,8 +41,8 @@ Decisión: A. Configuración por ciudad, no plugins ejecutables ni consultas arb
 Crear `download_gis.py` (biblioteca importable y CLI) y `data/<slug>/city.json`. En cada directorio de ciudad conservar los nombres locales uniformes: city.json, extract.overpassql, source.json, calles.json, limite.geojson y metadata.json. Evidencia histórica de descubrimiento/verificación: discover.overpassql, discover.json, discover-retry.json, verify-area.overpassql y verify-area.json. Para Arrecifes usar `data/arrecifes/`.
 
 - Los archivos raw, derivados GIS, queries y configuración canónicos pertenecen a data/arrecifes/. Mover sin reserializar los snapshots existentes.
-- Excepción explícita de compatibilidad: mantener `arrecifes_calles.json` en la raíz como copia pública generada de data/arrecifes/calles.json, con igualdad de bytes comprobada en pruebas. No es una segunda fuente editable. El CLI de descarga nunca modifica esa copia.
-- No usar symlinks: la lista permitida Docker y los servidores de pruebas ya esperan un archivo público regular en la raíz. Así no se modifica el contrato HTTP ni la imagen para introducir data/.
+- Excepción explícita de compatibilidad: mantener `frontend/arrecifes_calles.json` como copia pública generada de data/arrecifes/calles.json, con igualdad de bytes comprobada en pruebas (ubicación actualizada por separate-frontend-backend; URL HTTP raíz intacta). No es una segunda fuente editable. El CLI de descarga nunca modifica esa copia.
+- No usar symlinks: la lista permitida Docker y los servidores de pruebas esperan el archivo regular de frontend/ publicado en la raíz HTTP. No introducir data/ en el docroot.
 - No mover informes históricos GIS_TEST_RESULTS.txt, GIS_HANDOFF.json o GIS_BLOCKER.txt como si fueran vigentes. Actualizar GIS_README.md para distinguir rutas actuales y evidencia histórica; no reescribir resultados antiguos.
 - Prohibido publicar source.json: contiene metadatos de editores OSM. Pruebas HTTP deben confirmar 404 para /data/arrecifes/source.json y /data/arrecifes/city.json.
 

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createRankedClient, errorMessage } from '../ranked-game-client.mjs';
+import { createRankedClient, errorMessage } from '../frontend/ranked-game-client.mjs';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status });
 test('transport retry preserves exact key/body; corrected username gets a distinct key', async () => {

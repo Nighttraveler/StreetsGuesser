@@ -5,7 +5,8 @@ import { readFile, mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const root = new URL('../', import.meta.url);
-const data = JSON.parse(await readFile(new URL('arrecifes_calles.json', root)));
+const frontendRoot = new URL('../frontend/', import.meta.url);
+const data = JSON.parse(await readFile(new URL('arrecifes_calles.json', frontendRoot)));
 const files = new Map([
   ['/play.html', ['play.html', 'text/html']],
   ['/', ['index.html', 'text/html']], ['/index.html', ['index.html', 'text/html']],
@@ -25,7 +26,7 @@ before(async () => {
     const file = files.get(new URL(req.url, 'http://localhost').pathname);
     if (!file) { res.writeHead(404); res.end('Not found'); return; }
     try {
-      const content = await readFile(new URL(file[0], root));
+      const content = await readFile(new URL(file[0], frontendRoot));
       res.writeHead(200, { 'Content-Type': `${file[1]}; charset=utf-8` });
       res.end(content);
     } catch { res.writeHead(500); res.end('Read error'); }

@@ -139,7 +139,7 @@ node --test tests/compose.test.mjs
 
 assert_dataset() {
   curl --noproxy '*' -fsS --max-time 5 "$COMPOSE_SMOKE_ORIGIN/arrecifes_calles.json" -o "$tmp/dataset.json"
-  cmp arrecifes_calles.json "$tmp/dataset.json"
+  cmp frontend/arrecifes_calles.json "$tmp/dataset.json"
 }
 wait_healthy() {
   local id=$1 attempt
