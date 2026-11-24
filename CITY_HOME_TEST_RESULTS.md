@@ -44,3 +44,25 @@ El runner mouse asumía coordenadas permanentes tras pulsar controles: con la po
 Sin migraciones, dependencias nuevas runtime, cambios GIS, backend ni Docker. No hay build frontend: se sirven módulos/HTML/CSS directamente. No se ejecutó build Docker porque no cambian imagen ni allowlist; se verificó el handler estático real. No probado en dispositivos físicos, Safari o Firefox. No se hizo despliegue, push, rebase ni integración a main.
 
 Implementación lista para QA hija `t_66dd66e9`; esta fase no equivale a aprobación independiente ni cierre de la entrega integrada. QA y el integrador deben verificar el SHA exacto y main antes del cierre raíz.
+
+## Corrección del hallazgo de QA — t_03f1f056
+
+El candidato original `a4c0ce6` mostraba filas sin control ni identificador. El cambio OpenSpec `select-city-from-home` se validó antes de modificar código y pruebas. Ahora cada botón expone el ID del catálogo y selecciona esa ciudad en el panel clasificado. El foco pasa a dificultad (o a ciudad si no tiene dificultades). No inicia una sesión ni una partida, ni repite la consulta del catálogo.
+
+| Caso | Resultado y evidencia |
+| --- | --- |
+| HOME-CITIES-01 | PASS: catálogo real SQLite de prueba con `arrecifes`, `fixture-city`, `san-nicolas`; los tres nombres aparecen una vez y los tres botones seleccionan su ID por Enter en escritorio. Se observan sólo solicitudes GET al mismo origen, una al catálogo, sin cookies ni excepciones. |
+| HOME-CITIES-02 | PASS: `cities: []` muestra «No hay ciudades disponibles», cero filas y el inicio clasificado queda deshabilitado. |
+| HOME-CITIES-03 | PASS: HTTP 503, fallo de red y respuesta malformada muestran «No se pudieron cargar las ciudades» sin filas previas; un reintento por teclado recupera los tres registros. |
+| HOME-CITIES-04 | N/A para cambio de contexto: la portada no admite cambio de contexto. Se verifica estado «Cargando ciudades» e imposibilidad de duplicar una solicitud aún pendiente. |
+| HOME-CITIES-05 | N/A: catálogo global, sin concepto de estudios ni permisos en este proyecto. |
+| HOME-CITIES-06 | PASS: toque emulado selecciona cada ID a 375 px. Los tres botones tienen al menos 44 px de alto; la tabulación y el foco visible se verifican en escritorio. Nombres largos completos sin desborde y sin solapamientos visibles en las capturas de 375×812 y 1280×1000 (`test-results/city-home-*.png`, no versionadas). |
+
+La suite también cubre dos ciudades de igual nombre con IDs distintos, conserva la dificultad al seleccionar la misma ciudad de nuevo y retira el estado de clasificación anterior cuando la ciudad elegida no tiene dificultades. Las ciudades de prueba se registran sólo en la base temporal de Chromium; no se añadieron ciudades a producción.
+
+- `npm test`: 33/33.
+- `npm run test:functional`: 12/12.
+- Suite de portada, cliente, clasificación, integración SQLite y práctica estática con `node --experimental-sqlite --test tests/city-home-browser.test.mjs tests/rankings-client.test.mjs tests/rankings-browser.test.mjs tests/rankings-integration.test.mjs tests/static-practice-browser.test.mjs`: 18/18.
+- Servidor estático Python: 4/4; pruebas del gate: 7/7; validación OpenSpec estricta: 12/12.
+
+Pendiente: revisión independiente del candidato corregido e integración autorizada a `main`. No se hizo push ni despliegue.

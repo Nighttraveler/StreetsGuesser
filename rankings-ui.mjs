@@ -104,6 +104,21 @@ export function mountRankings({ showGame, practice, setBusy }, api = createRanke
     el('rank-start').disabled = unavailable || busy || Boolean(pending);
     el('rank-refresh').disabled = unavailable;
     if (!unavailable) refresh();
+    else {
+      ++sequence; // Ignore any ranking response for the previous selection.
+      el('ranking-list').replaceChildren();
+      el('rank-more').hidden = true;
+      text('ranking-status', city ? 'Esta ciudad no tiene dificultades disponibles.' : '');
+    }
+  }
+  function selectHomeCity(id) {
+    const select = el('rank-city');
+    if (select.value !== id) {
+      select.value = id;
+      difficulties();
+    }
+    const difficulty = el('rank-difficulty');
+    (difficulty.disabled ? select : difficulty).focus();
   }
   async function loadCatalog() {
     if (catalogLoading) return;
@@ -116,10 +131,6 @@ export function mountRankings({ showGame, practice, setBusy }, api = createRanke
     text('cities-status', 'Cargando ciudades…');
     text('catalog-status', 'Cargando ciudades…');
     cities = [];
-    ++sequence; // Discard ranking responses belonging to the previous catalog.
-    el('ranking-list').replaceChildren();
-    el('rank-more').hidden = true;
-    text('ranking-status', '');
     el('rank-city').replaceChildren();
     el('rank-city').disabled = true;
     difficulties();
@@ -127,7 +138,12 @@ export function mountRankings({ showGame, practice, setBusy }, api = createRanke
       cities = (await api.catalog()).cities;
       for (const city of cities) {
         const row = document.createElement('li');
-        row.textContent = city.name;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = city.name;
+        button.dataset.cityId = city.id;
+        button.addEventListener('click', () => selectHomeCity(city.id));
+        row.append(button);
         el('cities-list').append(row);
       }
       el('cities-list').hidden = !cities.length;
