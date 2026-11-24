@@ -11,4 +11,4 @@
 
 ## 3. Entrega
 - [x] Ejecutar gates OpenSpec, unitarias y regresiones aplicables (CITY_HOME_TEST_RESULTS.md).
-- [ ] Documentar evidencia, comprometer implementación y entregar rama/hashes limpios a QA hija.
+- [x] Documentar evidencia, comprometer implementación (1a2fbcb) y preparar entrega de rama/hashes limpios a QA hija t_66dd66e9.
