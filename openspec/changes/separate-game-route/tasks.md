@@ -11,5 +11,6 @@
 ## 3. Verificación y entrega
 - [x] Ejecutar gates, unitarias, HTTP, navegador y build/smoke Docker alternativo (10/10); runner Compose histórico bloqueado por contrato heredado, ver GAME_ROUTE_TEST_RESULTS.md.
 - [ ] Resolver limpieza operativa del contenedor temporal (política headless deniega docker stop).
-- [ ] Registrar resultados, revisar diff y commitear con trailer.
-- [ ] Comprobar árbol limpio y entregar SHA/base/rama a la cadena landing/QA sin integrar.
+- [x] Registrar resultados, revisar diff y commitear con trailer (6087c94).
+- [x] Comprobar árbol limpio tras el commit de implementación.
+- [ ] Liberar la cadena landing/QA después de resolver el bloqueo operativo; sin integrar.
