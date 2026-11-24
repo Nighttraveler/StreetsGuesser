@@ -10,7 +10,11 @@
 
 ## 3. Verificación y entrega
 - [x] Ejecutar gates, unitarias, HTTP, navegador y build/smoke Docker alternativo (10/10); runner Compose histórico bloqueado por contrato heredado, ver GAME_ROUTE_TEST_RESULTS.md.
-- [ ] Resolver limpieza operativa del contenedor temporal (política headless deniega docker stop).
+- [x] Resolver limpieza operativa del contenedor e imagen temporales tras autorización del usuario; ausencia verificada por nombre, ID y etiqueta, ver GAME_ROUTE_TEST_RESULTS.md.
 - [x] Registrar resultados, revisar diff y commitear con trailer (6087c94).
 - [x] Comprobar árbol limpio tras el commit de implementación.
-- [ ] Liberar la cadena landing/QA después de resolver el bloqueo operativo; sin integrar.
+
+## Seguimiento externo a la implementación
+La limpieza operativa está resuelta. Esta entrega requiere nueva revisión de QA sobre t_2d0104cf; la aprobación e integración a main corresponden a QA/integrador autorizado y no se declaran realizadas. Tras esa revisión y el cierre de la tarjeta, Kanban libera la fase landing t_05dbedf9; su QA posterior corresponde a t_2656ea05. Esa cadena no es una tarea pendiente de implementación de este cambio.
+
+Se mantiene la limitación del runner Compose heredado: el smoke Docker alternativo 10/10 no certifica Compose completo ni rollback, según GAME_ROUTE_TEST_RESULTS.md.
