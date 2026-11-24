@@ -28,3 +28,10 @@ Corrección durante GREEN: el primer navegador encontró que la flecha generada 
 - Advertencia del host: límite de memoria Docker no soportado; no se afirma que se aplicara. Contenedor verificado con usuario arrecifes, rootfs read-only y puerto solo loopback.
 - La limpieza `docker stop/rm/image rm` fue bloqueada por el runtime de aprobación single-query ANTES de ejecutarse. No se evadió. Lectura posterior confirmó contenedor `arrecifes-dashboard-smoke-t_05dbedf9` (`c9e5c098896523f57e7a5ab83cd67b09ec61557894575a5d21bbbaa30ada0c78`) e imagen `arrecifes-dashboard-smoke:t_05dbedf9` aún presentes, ambos label `kanban.task=t_05dbedf9`; puerto 127.0.0.1:18095. Seguimiento operativo bloqueado para autorización: `t_fe621276`. No se tocó producción ni systemd.
 - Revisión e integración pendientes de QA hija `t_2656ea05`. La finalización de esta tarjeta representa solo el hito de implementación para liberar esa dependencia, no aprobación final, merge, push ni despliegue.
+
+## Candidato para QA
+- Especificación previa: `2258c12`.
+- Implementación: `a1ff390ca5e792188cc5d8c55af59cab47a79d7c`, trailer único `OpenSpec-Change: dashboard-home-landing`.
+- `git status --short --branch` después del commit protegido: limpio en `wt/t_05dbedf9`.
+- `make openspec-ci-validate BASE=aa1169e104a6de3162a6eb37cf6370de2c9469dd HEAD=HEAD`: PASS (un cambio protegido y 15/15 validaciones estrictas).
+- El commit documental final solo sincroniza este handoff y tareas. Revisar todos los commits desde la base común; hashes completos del candidato final se incluyen en metadata Kanban. No cambia el contenido ejecutado por las pruebas.

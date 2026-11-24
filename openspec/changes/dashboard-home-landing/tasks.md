@@ -8,5 +8,5 @@
 
 ## 3. Verification and handoff
 - [x] 3.1 Run unit, browser, functional/static regression and OpenSpec gates; inspect actual rendered views (37 unit, 20 UI/integration, 15 functional, 4 Python, 10 Docker smoke PASS).
-- [ ] 3.2 Document real results and limitations, synchronize tasks, create protected commit with trailer and verify clean worktree.
-- [ ] 3.3 Deliver exact branch, base and commits to downstream QA without merge or deploy.
+- [x] 3.2 Document real results and limitations, synchronize tasks, create protected commit with trailer and verify clean worktree (a1ff390, clean; CI range PASS).
+- [x] 3.3 Deliver exact branch, base and commits to downstream QA without merge or deploy (QA t_2656ea05 notified; final handoff accompanies implementation milestone completion).
