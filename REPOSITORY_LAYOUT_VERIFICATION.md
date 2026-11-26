@@ -1,6 +1,6 @@
 # Verificación de reorganización — t_c591d950
 
-Rama: wt/t_c591d950. Base común y baseline main: eef9290713a13c229c2075130468adec7625fda9. Especificación previa: separate-frontend-backend, commit f610429 (validado antes de tocar protegidos). Los hashes completos finales se registran en Kanban después de comprometer implementación; este informe no implica integración ni aprobación QA.
+Rama: wt/t_c591d950. Base común y baseline main: eef9290713a13c229c2075130468adec7625fda9. Especificación previa: separate-frontend-backend, commit f610429 (validado antes de tocar protegidos). Implementación: 0e9c75c20d6afbecfc20d762cb58960c90e20bdd, con exactamente un trailer OpenSpec-Change: separate-frontend-backend. Worktree limpio comprobado después del commit. El commit documental posterior sincroniza esta evidencia y checklist; hashes completos finales en Kanban. No implica integración ni aprobación QA.
 
 ## Resultados ejecutados
 
@@ -24,7 +24,7 @@ Entorno: Linux arm64; Node v22.22.3, npm 12.1.0, Python 3.13.5, Chromium 151.0.7
 - `make openspec-validate CHANGE=separate-frontend-backend`: PASS antes del código y al validar implementación.
 - `openspec validate --all --strict --no-interactive`: 16/16 PASS.
 - `make openspec-guard-test`: 7/7 PASS.
-- `git diff --check`: PASS. Hook instalado con make install-hooks; gate CI sobre rango de commits se registra en Kanban después del commit.
+- `git diff --check` y staged check: PASS. Hook instalado con make install-hooks y ejecutado sin bypass. `make openspec-ci-validate BASE=eef9290713a13c229c2075130468adec7625fda9 HEAD=HEAD` sobre 0e9c75c: PASS, un cambio protegido válido y 16/16 globales, incluidos renombres por ambos lados.
 
 ## Integridad
 
@@ -40,6 +40,8 @@ SQL backend/ranked-game/migrations/001-rankings.sql: 2c68d64918ddd216258ffae54a1
 
 Readback: healthy; usuario arrecifes UID 100/GID 101, rootfs read-only, cap-drop ALL, no-new-privileges:true, puerto loopback exclusivo; docroot contiene exactamente los seis basenames esperados. `COMPOSE_SMOKE_ORIGIN=http://127.0.0.1:18096 node --test tests/compose.test.mjs`: 10/10 PASS contra imagen real: bytes/MIME, JSON hash, HEAD, privados 404, portada, juego, respuesta y sin red externa.
 
-Pendiente operativo: la política headless rechazó `docker stop streetguesser-smoke-tc591d950` antes de ejecutar la limpieza. El readback posterior confirma contenedor propio todavía healthy y etiqueta de imagen presente. Se necesita autorización humana para detener/eliminar únicamente ese contenedor y retirar streetguesser:test-tc591d950. No se eludió el bloqueo. Una comprobación combinada Docker/exec y un probe Python inline también fueron bloqueados por el analizador; la verificación se obtuvo con comandos simples de solo lectura, Git y suites reales, no con resultados sintéticos.
+Pendiente operativo: la política headless rechazó `docker stop streetguesser-smoke-tc591d950` antes de ejecutar la limpieza. En la reanudación, `docker ps -a --filter name=streetguesser-smoke-tc591d950` confirma que el contenedor propio existe con estado Exited (255); `docker image inspect streetguesser:test-tc591d950` confirma la misma imagen. Se necesita limpieza humana autorizada de ese contenedor detenido y de su imagen. No se reintentó ni eludió la operación rechazada. Una comprobación combinada Docker/exec y un probe Python inline también fueron bloqueados por el analizador en la ejecución previa; la verificación se obtuvo con comandos simples de solo lectura, Git y suites reales, no con resultados sintéticos.
+
+Reanudación: se repitieron `make openspec-validate CHANGE=separate-frontend-backend`, validación global estricta (16/16), guard (7/7), `npm test` (39/39, cero skips), `git diff --check`, instalación de hooks y gate CI baseline..0e9c75c: todos PASS. Las suites de navegador, GIS y Docker anteriores no se presentan como reejecutadas en esta reanudación. Los dos archivos documentales pendientes pertenecen a esta tarjeta y se conservan en un commit documental separado.
 
 No se certifican despliegue productivo, topología Compose, rollback operativo, Safari/iOS ni dispositivos físicos. Sin systemd, docroot externo, main, push o release modificados. Hasta resolver la limpieza operativa, esta fase queda bloqueada y QA hija no se libera; el código se conserva comprometido y limpio para reanudación.

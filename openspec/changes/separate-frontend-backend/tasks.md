@@ -14,7 +14,7 @@
 
 - [x] 3.1 Ejecutar suites Node, Chromium, SQLite real sin override y con override, Python/GIS y cobertura (REPOSITORY_LAYOUT_VERIFICATION.md).
 - [x] 3.2 Comparar hashes y bytes baseline; ejecutar build Docker y smoke aislado sin despliegue (10/10; limpieza propia pendiente por permisos).
-- [ ] 3.3 Ejecutar gates OpenSpec/guard/CI, revisar diff staged, comprometer implementación con trailer único.
+- [x] 3.3 Ejecutar gates OpenSpec/guard/CI, revisar diff staged, comprometer implementación con trailer único (0e9c75c20d6afbecfc20d762cb58960c90e20bdd; gate CI baseline..HEAD válido).
 - [ ] 3.4 Verificar worktree limpio y entregar rama/base/commits/evidencia a QA hija t_b8455d86.
 
 Bloqueo operativo antes de liberar QA: la política headless impide detener/eliminar el contenedor de smoke propio streetguesser-smoke-tc591d950 y retirar su imagen streetguesser:test-tc591d950. Se requiere limpieza autorizada y verificar ausencia; no se intentará eludir la restricción. No se tocaron servicios activos ajenos ni producción.
