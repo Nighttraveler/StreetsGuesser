@@ -30,7 +30,7 @@ Clasificado (Node >=22.22, DB persistente privada fuera del docroot):
 
     RANKINGS_DEVELOPMENT=1 RANKINGS_DB=/ruta/privada/rankings/state.db npm run start:rankings
 
-Mismo comando desde raíz; ejecuta backend/ranked-game/server.mjs, por defecto 127.0.0.1:8081. Sin modo desarrollo sigue siendo API-only con origen HTTPS y proxy confiable según RANKINGS_BACKEND.md. El traslado no activa rankings en Compose ni migra estado. Backup CLI y cobertura están actualizados en esa guía.
+Mismo comando desde raíz; ejecuta backend/ranked-game/server.mjs, por defecto 127.0.0.1:8081. Sin modo desarrollo sigue siendo API-only con origen HTTPS y proxy confiable según RANKINGS_BACKEND.md. La imagen de enable-rankings-in-compose inicia el modo local desde ese mismo ejecutable. La guía del backend documenta el CLI de respaldo y su cobertura.
 
 URLs intactas: /, /index.html, /play.html, activos en raíz HTTP y /api/v1/*. No hay prefijos /frontend o /backend públicos. Python publica seis basenames: index.html, play.html, styles.css, game.mjs, app.mjs, arrecifes_calles.json. Node de desarrollo añade los dos módulos opcionales de rankings. Publicar manualmente requiere copiar esos seis archivos explícitos desde frontend/ a un directorio dedicado nuevo, no frontend/ completo ni data/; no modificar el docroot externo activo.
 
@@ -57,18 +57,4 @@ La integración por defecto encuentra backend/ranked-game/http.mjs y falla si fa
 
 ## Docker sin despliegue
 
-Dockerfile y .dockerignore permiten únicamente seis fuentes frontend/ y backend/serve_static.py (más Dockerfile); el contenedor conserva /srv/arrecifes/public/ y /srv/arrecifes/serve_static.py. compose.yaml permanece idéntico a baseline, incluido bind 0.0.0.0 por defecto, red externa proxy y etiquetas Traefik. La descripción histórica de bridge propia/loopback de DEPLOYMENT.md no es el modelo efectivo. `tests/compose-smoke.sh` todavía comprueba ese modelo antiguo: no usarlo como certificación de esta mudanza. No se corrige infraestructura fuera de alcance.
-
-Ensayo alternativo de imagen, sin Compose, proxy, systemd ni servicio activo (elegir nombre/etiqueta nuevos y puerto libre):
-
-    docker compose --env-file /dev/null config --quiet
-    ss -Hlt 'sport = :18096'
-    docker build --label io.arrecifes.task=t_c591d950 -t streetguesser:test-tc591d950 .
-    docker run -d --name streetguesser-smoke-tc591d950 --label io.arrecifes.task=t_c591d950 --read-only --tmpfs /tmp:rw,noexec,nosuid,nodev,size=16m,mode=1777 --cap-drop ALL --security-opt no-new-privileges:true --log-driver json-file --log-opt max-size=10m --log-opt max-file=3 --health-cmd 'wget -q -O /dev/null http://127.0.0.1:8080/' --health-interval 30s --health-timeout 3s --health-start-period 5s --health-retries 3 -p 127.0.0.1:18096:8080 streetguesser:test-tc591d950
-    docker inspect streetguesser-smoke-tc591d950
-    COMPOSE_SMOKE_ORIGIN=http://127.0.0.1:18096 node --test tests/compose.test.mjs
-    docker stop streetguesser-smoke-tc591d950
-    docker rm streetguesser-smoke-tc591d950
-    docker image rm streetguesser:test-tc591d950
-
-Esperar healthy mediante inspección y comprobar HTTP antes del test; no reutilizar recursos ajenos. La suite llamada Compose ejercita aquí la imagen real por HTTP/Chromium, no la topología Compose ni su rollback. El ensayo no autoriza producción, push, corte systemd ni cambios al docroot externo. DEPLOYMENT.md conserva comandos de respaldo actualizados que guardan frontend/backend y checksums por basename; verificar cualquier migración en una ventana separada.
+Dockerfile y .dockerignore permiten los ocho activos de frontend/ y los archivos de runtime Node requeridos, incluida la migración SQLite. Compose sirve la web y la API desde un puerto local del host Linux. El servidor Python independiente mantiene su allowlist para práctica estática. La guía de arranque, verificación y respaldo está en [DEPLOYMENT.md](DEPLOYMENT.md).

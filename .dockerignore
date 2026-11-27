@@ -1,4 +1,4 @@
-# Lista permitida: no enviar el resto del checkout al builder.
+# Lista permitida de archivos de runtime.
 **
 !Dockerfile
 !frontend/
@@ -7,6 +7,21 @@
 !frontend/game.mjs
 !frontend/index.html
 !frontend/play.html
+!frontend/ranked-game-client.mjs
+!frontend/rankings-ui.mjs
 !frontend/styles.css
 !backend/
-!backend/serve_static.py
+!backend/ranked-game/
+!backend/ranked-game/backup.mjs
+!backend/ranked-game/catalog.mjs
+!backend/ranked-game/database.mjs
+!backend/ranked-game/errors.mjs
+!backend/ranked-game/http.mjs
+!backend/ranked-game/identity.mjs
+!backend/ranked-game/migrations/
+!backend/ranked-game/migrations/001-rankings.sql
+!backend/ranked-game/server.mjs
+!backend/ranked-game/service.mjs
+!backend/rankings/
+!backend/rankings/service.mjs
+!backend/rankings/validation.mjs

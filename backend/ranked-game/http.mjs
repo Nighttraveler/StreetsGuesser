@@ -88,10 +88,14 @@ export function createApplication(config) {
         let bytes;
         try { bytes = await readFile(new URL(asset[0], config.staticRoot)); }
         catch { fail('NOT_FOUND'); }
-        res.writeHead(200, { 'Content-Type': `${asset[1]}; charset=utf-8`, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-cache' });
+        res.writeHead(200, {
+          'Content-Type': `${asset[1]}; charset=utf-8`, 'Content-Length': bytes.length,
+          'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-cache',
+        });
         res.end(req.method === 'HEAD' ? undefined : bytes);
         return;
       }
+      if (config.development && !loopback(req.socket.remoteAddress)) fail('ORIGIN_FORBIDDEN');
       // A trusted TLS terminator must preserve Host and explicitly forward HTTPS.
       if (!config.development && !req.socket.encrypted && !(config.trustedProxy === req.socket.remoteAddress && req.headers['x-forwarded-proto'] === 'https')) fail('ORIGIN_FORBIDDEN');
       if (req.headers.host !== origin.host) fail('ORIGIN_FORBIDDEN');

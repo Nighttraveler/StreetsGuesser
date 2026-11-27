@@ -6,8 +6,15 @@ services:
       context: .
     image: ${ARRECIFES_IMAGE:-arrecifes-de-memoria:local}
     pull_policy: never
-    ports:
-      - "${BIND_IP:-0.0.0.0}:${HTTP_PORT:-8090}:8080/tcp"
+    # El proceso escucha directamente en el loopback del host Linux.
+    network_mode: host
+    environment:
+      RANKINGS_DEVELOPMENT: "1"
+      RANKINGS_HOST: 127.0.0.1
+      RANKINGS_PORT: "${HTTP_PORT:-8090}"
+      RANKINGS_DB: /var/lib/arrecifes/state/rankings.sqlite
+    volumes:
+      - rankings:/var/lib/arrecifes
     restart: unless-stopped
     read_only: true
     tmpfs:
@@ -21,26 +28,15 @@ services:
         max-size: "10m"
         max-file: "3"
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:' + process.env.RANKINGS_PORT + '/api/v1/catalog', { signal: AbortSignal.timeout(2000) }).then(response => { if (!response.ok) process.exitCode = 1; }).catch(() => { process.exitCode = 1; });"
       interval: 30s
       timeout: 3s
       start_period: 5s
       retries: 3
-    labels:
-      traefik.enable: 'true'
-      traefik.docker.network: proxy
-      traefik.http.services.arremap.loadbalancer.server.port: '8080'
-      traefik.http.routers.arremap.rule: Host(`arremap.home.arpa`)
-      traefik.http.routers.arremap.entrypoints: web
-      traefik.http.routers.arremap.service: arremap
-      traefik.http.routers.arremap-secure.rule: Host(`arremap.home.arpa`)
-      traefik.http.routers.arremap-secure.entrypoints: websecure
-      traefik.http.routers.arremap-secure.service: arremap
-      traefik.http.routers.arremap-secure.tls: 'true'
-    networks:
-      - proxy 
-networks:
-  proxy:
-    external: true
-  default:
-    driver: bridge
+
+volumes:
+  rankings:

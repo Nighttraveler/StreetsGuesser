@@ -24,15 +24,26 @@ test('layout separates browser assets, services and canonical data without dupli
   assert.equal(JSON.parse(await read('package.json')).scripts['start:rankings'], 'node --experimental-sqlite backend/ranked-game/server.mjs');
 });
 
-test('image context permits exactly the six practice sources and Python launcher', async () => {
-  const practice = assets.filter(name => !['ranked-game-client.mjs', 'rankings-ui.mjs'].includes(name));
+test('image context and copies allow only frontend assets and backend runtime files', async () => {
+  const runtime = {
+    'frontend/': assets,
+    'backend/ranked-game/': ['backup.mjs', 'catalog.mjs', 'database.mjs', 'errors.mjs', 'http.mjs', 'identity.mjs', 'server.mjs', 'service.mjs'],
+    'backend/ranked-game/migrations/': ['001-rankings.sql'],
+    'backend/rankings/': ['service.mjs', 'validation.mjs'],
+  };
   const dockerfile = (await read('Dockerfile')).toString();
   const copies = [...dockerfile.matchAll(/^COPY (.+) (\S+)$/gm)];
-  assert.equal(copies.length, 2);
-  assert.equal(copies[0][2], '/srv/arrecifes/public/');
-  assert.deepEqual(copies[0][1].split(' ').sort(), practice.map(name => `frontend/${name}`));
-  assert.equal(copies[1][1], 'backend/serve_static.py');
-  assert.equal(copies[1][2], '/srv/arrecifes/serve_static.py');
-  const ignore = (await read('.dockerignore')).toString().split('\n').filter(line => line && !line.startsWith('#'));
-  assert.deepEqual(ignore, ['**', '!Dockerfile', '!frontend/', ...practice.map(name => `!frontend/${name}`), '!backend/', '!backend/serve_static.py']);
+  assert.deepEqual(
+    Object.fromEntries(copies.map(([, sources, target]) => [target, sources.split(' ').sort()])),
+    Object.fromEntries(Object.entries(runtime).map(([target, files]) => [target, files.map(file => target + file)])),
+  );
+  const [deny, ...allow] = (await read('.dockerignore')).toString().split('\n').filter(line => line && !line.startsWith('#'));
+  assert.equal(deny, '**');
+  assert.equal(new Set(allow).size, allow.length);
+  assert.deepEqual(allow.sort(), [
+    '!Dockerfile', '!backend/',
+    ...Object.entries(runtime).flatMap(([target, files]) => [
+      `!${target}`, ...files.map(file => `!${target}${file}`),
+    ]),
+  ].sort());
 });

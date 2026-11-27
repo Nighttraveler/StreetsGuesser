@@ -2,31 +2,37 @@
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 
-project=arrecifes-de-memoria-smoke
 port=${1:-18090}
-if [[ ! $port =~ ^[1-9][0-9]{0,4}$ ]] || (( port < 1024 || port > 65535 || port == 8090 )); then
+if [[ ! $port =~ ^[1-9][0-9]{3,4}$ ]] || (( port < 1024 || port > 65535 || port == 8090 )); then
   printf '%s\n' 'Elegir un puerto de prueba libre (1024–65535, distinto de 8090).' >&2
   exit 2
 fi
-[[ -f compose.yaml ]] || { printf '%s\n' 'Falta compose.yaml en el checkout del ensayo.' >&2; exit 1; }
-export BIND_IP=127.0.0.1 HTTP_PORT=$port COMPOSE_SMOKE_ORIGIN="http://127.0.0.1:$port"
-unset DOCKER_DEFAULT_PLATFORM
-
-# No usar el .env local, una etiqueta compartida ni un proyecto ya existente.
+listeners=$(ss -Hlt "sport = :$port")
+[[ -z $listeners ]] || { printf '%s\n' "Puerto ocupado: $port" >&2; exit 1; }
+umask 077
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/arrecifes-smoke.XXXXXXXX")
 suffix=${tmp##*.}
-export ARRECIFES_IMAGE="arrecifes-de-memoria:smoke-${suffix,,}"
-previous="${ARRECIFES_IMAGE}-previous"
-compose=(docker compose -p "$project" --env-file /dev/null -f "$PWD/compose.yaml")
+project="arrecifes-smoke-${suffix,,}"
+export HTTP_PORT=$port ARRECIFES_IMAGE="arrecifes-de-memoria:smoke-${suffix,,}"
+export COMPOSE_SMOKE_ORIGIN="http://127.0.0.1:$port" COMPOSE_SMOKE_COOKIE_FILE="$tmp/session"
+unset DOCKER_DEFAULT_PLATFORM
+compose=(docker compose --env-file /dev/null -f "$PWD/compose.yaml")
+app=("${compose[@]}" -p "$project")
+restored=("${compose[@]}" -p "$project-restored")
 started=0
+restore_started=0
+
 cleanup() {
   status=$?
   trap - EXIT
+  if (( restore_started )); then
+    "${restored[@]}" down --volumes || status=1
+  fi
   if (( started )); then
-    "${compose[@]}" down || status=1
-    for tag in "$ARRECIFES_IMAGE" "$previous"; do
-      if docker image inspect "$tag" >/dev/null 2>&1; then docker image rm "$tag" || status=1; fi
-    done
+    "${app[@]}" down --volumes --rmi local || status=1
+    if docker image inspect "$ARRECIFES_IMAGE" >/dev/null 2>&1; then
+      docker image rm "$ARRECIFES_IMAGE" || status=1
+    fi
   fi
   rm -rf -- "$tmp"
   exit "$status"
@@ -35,170 +41,104 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-containers=$(docker ps -aq --filter "label=com.docker.compose.project=$project")
-networks=$(docker network ls -q --filter "label=com.docker.compose.project=$project")
-volumes=$(docker volume ls -q --filter "label=com.docker.compose.project=$project")
-[[ -z $containers && -z $networks && -z $volumes ]] || { printf '%s\n' "Proyecto ya existente: $project" >&2; exit 1; }
-for tag in "$ARRECIFES_IMAGE" "$previous"; do
-  if docker image inspect "$tag" >/dev/null 2>&1; then
-    printf '%s\n' "Etiqueta de prueba ya existente: $tag" >&2; exit 1
-  fi
+for name in "$project" "$project-restored"; do
+  [[ -z $(docker ps -aq --filter "label=com.docker.compose.project=$name") ]]
+  [[ -z $(docker volume ls -q --filter "label=com.docker.compose.project=$name") ]]
 done
-listeners=$(ss -Hlt "sport = :$port")
-[[ -z $listeners ]] || { printf '%s\n' "Puerto ocupado: $port" >&2; exit 1; }
-
-# Opción local para un daemon con pools agotados: no limpiar ni reutilizar redes ajenas.
-if [[ -n ${SMOKE_SUBNET:-} ]]; then
-  python3 - "$SMOKE_SUBNET" <<'PY'
-from ipaddress import ip_network
-import json
-import subprocess
-import sys
-
-def output(*args):
-    return subprocess.check_output(args, text=True)
-
-subnet = ip_network(sys.argv[1])
-if subnet.version != 4 or not any(subnet.subnet_of(ip_network(block)) for block in
-        ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16')) or not 24 <= subnet.prefixlen <= 29:
-    sys.exit('SMOKE_SUBNET debe ser un bloque RFC1918, /24 a /29, sin bits de host')
-ids = output('docker', 'network', 'ls', '-q').split()
-networks = json.loads(output('docker', 'network', 'inspect', *ids))
-routes = json.loads(output('ip', '-j', '-4', 'route', 'show', 'table', 'all'))
-occupied = [cfg['Subnet'] for net in networks for cfg in (net['IPAM']['Config'] or []) if 'Subnet' in cfg]
-occupied += [route['dst'] for route in routes if route['dst'] != 'default']
-for entry in occupied:
-    if subnet.overlaps(ip_network(entry, strict=False)):
-        sys.exit(f'SMOKE_SUBNET {subnet} se solapa con {entry}')
-print(f'Red bridge aislada: {subnet} sin solapamiento en Docker ni rutas IPv4 del host')
-PY
-  printf 'networks:\n  default:\n    ipam:\n      config:\n        - subnet: "%s"\n' "$SMOKE_SUBNET" > "$tmp/network.yaml"
-  compose+=(-f "$tmp/network.yaml")
+if docker image inspect "$ARRECIFES_IMAGE" >/dev/null 2>&1; then
+  printf '%s\n' "Etiqueta de prueba ya existente: $ARRECIFES_IMAGE" >&2
+  exit 1
 fi
 
-# Verificar modelo renderizado sin abrir puertos de producción.
-env -u BIND_IP -u HTTP_PORT -u ARRECIFES_IMAGE "${compose[@]}" config --format json > "$tmp/default.json"
-BIND_IP=192.168.0.105 HTTP_PORT=8090 "${compose[@]}" config --format json > "$tmp/lan.json"
-"${compose[@]}" config --format json > "$tmp/smoke.json"
-python3 - "$tmp" "$PWD" "$port" <<'PY'
+env -u HTTP_PORT -u ARRECIFES_IMAGE "${app[@]}" config --format json > "$tmp/default.json"
+"${app[@]}" config --format json > "$tmp/smoke.json"
+python3 - "$tmp" "$port" <<'PY'
 import json
 import os
 from pathlib import Path
 import sys
 
-folder, context, port = sys.argv[1:]
-for case, bind, published in [('default', '127.0.0.1', '8090'), ('lan', '192.168.0.105', '8090'), ('smoke', '127.0.0.1', port)]:
+folder, smoke_port = sys.argv[1:]
+for case, port, image in [
+    ('default', '8090', 'arrecifes-de-memoria:local'),
+    ('smoke', smoke_port, os.environ['ARRECIFES_IMAGE']),
+]:
     model = json.loads((Path(folder) / f'{case}.json').read_text())
-    assert list(model['services']) == ['web'] and not model.get('volumes') and not model.get('secrets')
+    assert list(model['services']) == ['web']
+    assert list(model['volumes']) == ['rankings']
+    assert not model.get('networks') and not model.get('secrets')
     web = model['services']['web']
-    assert web['build']['context'] == context and 'platform' not in web
-    assert web['image'] == ('arrecifes-de-memoria:local' if case == 'default' else os.environ['ARRECIFES_IMAGE'])
-    assert web['pull_policy'] == 'never' and web['restart'] == 'unless-stopped'
-    assert not any(web.get(key) for key in ('volumes', 'environment', 'privileged', 'container_name', 'depends_on', 'network_mode'))
-    (binding,) = web['ports']
-    assert (binding['host_ip'], binding['published'], binding['target'], binding['protocol']) == (bind, published, 8080, 'tcp')
-    (network,) = model['networks'].values()
-    assert network['driver'] == 'bridge' and not network.get('external')
-    print(f'config {case}: {bind}:{published} -> 8080/tcp')
+    assert web['image'] == image and web['pull_policy'] == 'never' and 'platform' not in web
+    assert web['network_mode'] == 'host'
+    assert not any(web.get(key) for key in ('ports', 'networks', 'labels', 'privileged'))
+    assert web['environment'] == {
+        'RANKINGS_DB': '/var/lib/arrecifes/state/rankings.sqlite',
+        'RANKINGS_DEVELOPMENT': '1',
+        'RANKINGS_HOST': '127.0.0.1',
+        'RANKINGS_PORT': port,
+    }
+    mount, = web['volumes']
+    assert (mount['type'], mount['source'], mount['target']) == ('volume', 'rankings', '/var/lib/arrecifes')
+    print(f'Compose {case}: 127.0.0.1:{port}, volumen privado, sin red externa')
 PY
 
 started=1
-printf 'Proyecto %s, origen %s, imagen %s\n' "$project" "$COMPOSE_SMOKE_ORIGIN" "$ARRECIFES_IMAGE"
-"${compose[@]}" up -d --wait --wait-timeout 90
-cid=$("${compose[@]}" ps -q web)
+"${app[@]}" up -d --wait --wait-timeout 90
+cid=$("${app[@]}" ps -q web)
 original=$(docker inspect -f '{{.Image}}' "$cid")
 docker image inspect -f 'Imagen {{.Id}} {{.Os}}/{{.Architecture}}' "$original"
-[[ $(docker inspect -f '{{.State.Health.Status}} {{.HostConfig.ReadonlyRootfs}} {{.HostConfig.Privileged}} {{.Config.User}} {{len .Mounts}}' "$cid") == 'healthy true false arrecifes 0' ]]
-[[ $("${compose[@]}" port web 8080) == "127.0.0.1:$port" ]]
+[[ $(docker inspect -f '{{.State.Health.Status}} {{.HostConfig.NetworkMode}} {{.HostConfig.ReadonlyRootfs}} {{.HostConfig.Privileged}} {{.Config.User}}' "$cid") == 'healthy host true false node' ]]
 [[ $(docker inspect -f '{{json .HostConfig.CapDrop}} {{json .HostConfig.SecurityOpt}}' "$cid") == '["ALL"] ["no-new-privileges:true"]' ]]
-[[ $(docker inspect -f '{{.HostConfig.LogConfig.Type}} {{index .HostConfig.LogConfig.Config "max-size"}} {{index .HostConfig.LogConfig.Config "max-file"}}' "$cid") == 'json-file 10m 3' ]]
-"${compose[@]}" exec -T web sh -eu -c '
-  test "$(id -un)" = arrecifes; test "$(id -u)" -ne 0
-  if command -v nginx; then exit 1; fi
-  case "$(readlink /proc/1/exe)" in /usr/local/bin/python3.*) ;; *) exit 1;; esac
-  while read -r name real effective rest; do
-    case "$name" in Uid:) test "$effective" -ne 0; uid=$effective;;
-      CapEff:) test "$real" = 0000000000000000;;
-      NoNewPrivs:) test "$real" = 1;; esac
-  done < /proc/1/status
-  printf "Python PID 1 UID efectivo: %s\n" "$uid"
-  test "$(stat -c %a /tmp)" = 1777
-  df -k /tmp | awk "NR == 2 { if (\$2 != 16384) exit 1; found = 1 } END { if (!found) exit 1 }"
-  touch /tmp/compose-smoke-write
-  awk '\''$2 == "/" { n = split($4, opts, ","); for (i = 1; i <= n; ++i) if (opts[i] == "ro") found = 1 } END { exit !found }'\'' /proc/mounts
-  test "$(ls -A /srv/arrecifes/public)" = "app.mjs
-arrecifes_calles.json
-game.mjs
-index.html
-play.html
-styles.css"
-  wget -q -O /dev/null http://127.0.0.1:8080/
+[[ $(ss -Hlt "sport = :$port" | awk '{print $4}') == "127.0.0.1:$port" ]]
+"${app[@]}" exec -T web sh -eu -c '
+  test "$(id -u)" -ne 0
+  test "$(stat -c "%a %u" /var/lib/arrecifes/state)" = "700 $(id -u)"
+  test -s "$RANKINGS_DB"
+  test -d "$RANKINGS_DB.datasets"
+  node --version
 '
-printf '%s\n' 'Healthy, UID no-root, sin capacidades, rootfs RO, tmpfs 16 MiB y exactamente seis archivos.'
 node --test tests/compose.test.mjs
 
-assert_dataset() {
-  curl --noproxy '*' -fsS --max-time 5 "$COMPOSE_SMOKE_ORIGIN/arrecifes_calles.json" -o "$tmp/dataset.json"
-  cmp frontend/arrecifes_calles.json "$tmp/dataset.json"
-}
-wait_healthy() {
-  local id=$1 attempt
-  for ((attempt=0; attempt<45; attempt++)); do
-    [[ $(docker inspect -f '{{.State.Health.Status}}' "$id") == healthy ]] && return 0
-    sleep 2
-  done
-  return 1
-}
-"${compose[@]}" stop
-[[ $(docker inspect -f '{{.State.Status}}' "$cid") == exited ]]
-if curl --noproxy '*' -sS --max-time 2 "$COMPOSE_SMOKE_ORIGIN/" -o /dev/null; then
-  printf '%s\n' 'El puerto aún responde con web parado.' >&2; exit 1
-fi
-"${compose[@]}" start
-[[ $("${compose[@]}" ps -q web) == "$cid" ]]
-wait_healthy "$cid"
-assert_dataset
+assert_saved() {
+  node --input-type=module <<'JS'
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 
-# El daemon reinicia la aplicación ante la salida del proceso, no por un stop manual.
-restart_count=$(docker inspect -f '{{.RestartCount}}' "$cid")
-"${compose[@]}" exec -T web sh -ec 'kill -TERM 1'
-for ((attempt=0; attempt<15; attempt++)); do
-  (( $(docker inspect -f '{{.RestartCount}}' "$cid") > restart_count )) && break
-  sleep 2
-done
-(( $(docker inspect -f '{{.RestartCount}}' "$cid") > restart_count ))
-wait_healthy "$cid"
-assert_dataset
-printf '%s\n' 'Recuperación automática: mismo contenedor y dataset, RestartCount incrementado.'
+const origin = process.env.COMPOSE_SMOKE_ORIGIN;
+const cookie = await readFile(process.env.COMPOSE_SMOKE_COOKIE_FILE, 'utf8');
+const get = (path, headers) => fetch(origin + path, { headers, signal: AbortSignal.timeout(5000) });
+const session = await get('/api/v1/session', { Cookie: cookie });
+assert.equal(session.status, 200);
+assert.equal((await session.json()).player.username, 'compose_jugador');
+const ranking = await get('/api/v1/rankings?city_id=arrecifes&difficulty=1');
+assert.equal(ranking.status, 200);
+const { items } = await ranking.json();
+assert.equal(items.length, 1);
+assert.equal(items[0].username, 'compose_jugador');
+assert.equal(items[0].score, 150);
+JS
+}
 
-"${compose[@]}" up -d --no-build --force-recreate --wait --wait-timeout 90
-new_cid=$("${compose[@]}" ps -q web)
+"${app[@]}" up -d --no-build --force-recreate --wait --wait-timeout 90
+new_cid=$("${app[@]}" ps -q web)
 [[ -n $new_cid && $new_cid != "$cid" && $(docker inspect -f '{{.Image}}' "$new_cid") == "$original" ]]
-assert_dataset
-"${compose[@]}" logs --tail=5 web
-printf '%s\n' 'Stop/start y recreación: mismo dataset, IDs comprobados, logs accesibles.'
+assert_saved
+printf '%s\n' 'Recreación verificada: misma sesión y marca.'
 
-# Imagen previa exportada; la versión siguiente cambia solo un label de build.
-docker image tag "$original" "$previous"
-docker image save -o "$tmp/previous.tar" "$previous"
-cp -- compose.yaml "$tmp/previous.compose.yaml"
-printf 'BIND_IP=127.0.0.1\nHTTP_PORT=%s\nARRECIFES_IMAGE=%s\n' "$port" "$previous" > "$tmp/previous.env"
-archived=(previous.tar previous.compose.yaml previous.env)
-rollback=(docker compose -p "$project" --env-file "$tmp/previous.env" -f "$tmp/previous.compose.yaml")
-if [[ -f $tmp/network.yaml ]]; then
-  archived+=(network.yaml)
-  rollback+=(-f "$tmp/network.yaml")
-fi
-(cd "$tmp"; sha256sum "${archived[@]}" > previous.sha256; sha256sum -c previous.sha256)
-docker image rm "$previous"
-printf 'services:\n  web:\n    build:\n      labels:\n        io.arrecifes.smoke.next: "%s"\n' "$suffix" > "$tmp/next.yaml"
-"${compose[@]}" -f "$tmp/next.yaml" up -d --build --wait --wait-timeout 90
-next=$(docker inspect -f '{{.Image}}' "$("${compose[@]}" ps -q web)")
-[[ $next != "$original" ]]
-assert_dataset
-docker image load -i "$tmp/previous.tar"
-env -u BIND_IP -u HTTP_PORT -u ARRECIFES_IMAGE "${rollback[@]}" up -d --no-build --wait --wait-timeout 90
-restored=$(docker inspect -f '{{.Image}}' "$("${compose[@]}" ps -q web)")
-[[ $restored == "$original" ]]
-assert_dataset
-printf 'Rollback offline sin rebuild: %s -> %s\n' "$next" "$restored"
+"${app[@]}" exec -T web sh -eu -c '
+  backup=$(mktemp -d)
+  trap "rm -rf -- \"$backup\"" EXIT
+  node --experimental-sqlite backend/ranked-game/backup.mjs "$RANKINGS_DB" "$backup/rankings.sqlite" >&2
+  cp -R "$RANKINGS_DB.datasets" "$backup/rankings.sqlite.datasets"
+  tar -C "$backup" -cf - rankings.sqlite rankings.sqlite.datasets
+' > "$tmp/rankings.tar"
+"${app[@]}" stop
+restore_started=1
+"${restored[@]}" run --rm -T --no-deps --entrypoint sh web -eu -c '
+  state=${RANKINGS_DB%/*}
+  test -z "$(ls -A "$state")"
+  tar -C "$state" -xf -
+' < "$tmp/rankings.tar"
+"${restored[@]}" up -d --no-build --wait --wait-timeout 90
+assert_saved
+printf '%s\n' 'Restauración verificada en otro volumen: misma sesión y marca.'

@@ -447,7 +447,7 @@ test('registro administrativo rechaza IDs duplicados y snapshots modificados', a
   assert.throws(() => createApplication({ ...h.config, registrations: [] }), /checksum mismatch/);
 });
 
-test('ejecutable de API: SIGTERM/reinicio preserva sesión, partida y publicación real', async t => {
+test('ejecutable: persistencia tras SIGTERM y frontend de producción explícito', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'rankings-process-'));
   const socket = createServer();
   await new Promise(resolve => socket.listen(0, '127.0.0.1', resolve));
@@ -455,9 +455,13 @@ test('ejecutable de API: SIGTERM/reinicio preserva sesión, partida y publicaci�
   await new Promise(resolve => socket.close(resolve));
   const origin = `http://127.0.0.1:${port}`;
   let child;
-  async function start() {
+  async function start(overrides = {}) {
     child = fork(new URL('../backend/ranked-game/server.mjs', import.meta.url), [], { silent: true, execArgv: ['--experimental-sqlite'],
-      env: { ...process.env, NODE_ENV: 'test', RANKINGS_DEVELOPMENT: '1', RANKINGS_HOST: '127.0.0.1', RANKINGS_PORT: String(port), RANKINGS_ORIGIN: origin, RANKINGS_DB: join(dir, 'state.db') } });
+      env: {
+        ...process.env, NODE_ENV: 'test', RANKINGS_DEVELOPMENT: '1', RANKINGS_SERVE_FRONTEND: '0',
+        RANKINGS_HOST: '127.0.0.1', RANKINGS_PORT: String(port), RANKINGS_ORIGIN: origin,
+        RANKINGS_DB: join(dir, 'state.db'), ...overrides,
+      } });
     await new Promise((resolve, reject) => {
       let output = '';
       child.stdout.on('data', chunk => { output += chunk; if (output.includes('listening on')) resolve(); });
@@ -496,4 +500,10 @@ test('ejecutable de API: SIGTERM/reinicio preserva sesión, partida y publicaci�
   await stop(); await start();
   assert.deepEqual(await request('/rankings/submissions', body, key), publication);
   assert.equal((await request('/rankings?city_id=arrecifes&difficulty=1')).body.items[0].score, 150);
+  const production = { NODE_ENV: 'production', RANKINGS_DEVELOPMENT: '0', RANKINGS_ORIGIN: 'https://game.example' };
+  await stop(); await start(production);
+  assert.equal((await fetch(origin + '/play.html')).status, 404);
+  await stop(); await start({ ...production, RANKINGS_SERVE_FRONTEND: '1' });
+  assert.equal((await fetch(origin + '/play.html')).status, 200);
+  error(await request('/catalog'), 403, 'ORIGIN_FORBIDDEN');
 });

@@ -16,11 +16,11 @@ El harness sirve exclusivamente index.html, play.html, styles.css, app.mjs, game
 
 ## Configuración de producción (sin despliegue)
 
-Sin RANKINGS_DEVELOPMENT=1 el ejecutable es API-only y exige RANKINGS_ORIGIN HTTPS. NODE_ENV=production prohíbe el modo de cookie HTTP. No acepta tráfico HTTP API aunque el cliente falsifique X-Forwarded-Proto. Un terminador TLS explícitamente confiable se declara mediante RANKINGS_TRUSTED_PROXY=<dirección IP exacta del peer>; debe preservar Host y sobrescribir X-Forwarded-Proto con https. Solo desde ese peer se acepta X-Forwarded-For con UNA dirección IP validada, nunca cadenas arbitrarias. Sin header válido usa la IP del socket. Restringir además por firewall el puerto API al proxy. No activar CORS ni registrar cookies/respuestas de jugadores en logs del proxy.
+Sin RANKINGS_DEVELOPMENT=1 el ejecutable exige RANKINGS_ORIGIN HTTPS. RANKINGS_SERVE_FRONTEND=1 permite servir los mismos activos junto con la API cuando un proxy externo termina TLS. NODE_ENV=production prohíbe el modo de cookie HTTP. No acepta tráfico HTTP API aunque el cliente falsifique X-Forwarded-Proto. Un terminador TLS explícitamente confiable se declara mediante RANKINGS_TRUSTED_PROXY=<dirección IP exacta del peer>; debe preservar Host y sobrescribir X-Forwarded-Proto con https. Solo desde ese peer se acepta X-Forwarded-For con UNA dirección IP validada, nunca cadenas arbitrarias. Sin header válido usa la IP del socket. Restringir además por firewall el puerto API al proxy. No activar CORS ni registrar cookies/respuestas de jugadores en logs del proxy.
 
 Cookie de producción __Host-arrecifes_session: Secure, HttpOnly, SameSite=Lax, Path=/, sin Domain, 180 días. Cookie HTTP de desarrollo solo loopback. No hay recuperación al perder la cookie. El nombre no autentica. La API no registra respuestas, cookies, SQL ni texto de jugadas en stdout; errores HTTP son JSON seguro.
 
-Dockerfile, compose.yaml, serve_static.py, systemd y el directorio público externo no se modifican. La imagen estática existente NO ejecuta esta API ni empaqueta los nuevos módulos UI; no es un despliegue de rankings. La activación posterior necesita imagen Node con versión fijada, volumen privado, allowlist de nuevos activos UI, enrutamiento /api/v1 de mayor prioridad bajo mismo origen, TLS real, ventana autorizada y smoke Docker/TLS. No se afirma haber probado esa topología.
+El cambio enable-rankings-in-compose empaqueta Node y habilita web y API por defecto en Docker con HTTP restringido al loopback del host. El volumen privado conserva SQLite y snapshots. La activación con TLS se configura por separado. Consultar [DEPLOYMENT.md](DEPLOYMENT.md) para el arranque, respaldo y verificación.
 
 ## Datos y migraciones
 

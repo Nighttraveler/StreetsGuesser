@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createInterface } from 'node:readline';
 import { copyFile, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -15,13 +15,10 @@ test('real static six-asset server: isolated home and practice without rankings 
   const temporary = await mkdtemp(join(process.env.TMPDIR || tmpdir(), 'static-practice-'));
   let server, browser;
   try {
-    const dockerfile = await readFile(new URL('Dockerfile', root), 'utf8');
-    const sources = dockerfile.match(/^COPY (.+) \/srv\/arrecifes\/public\/$/m)[1].split(' ');
-    const assets = sources.map(source => basename(source));
-    assert.deepEqual([...assets].sort(), ['app.mjs', 'arrecifes_calles.json', 'game.mjs', 'index.html', 'play.html', 'styles.css']);
-    for (const source of sources) await copyFile(new URL(source, root), join(temporary, basename(source)));
-    assert.deepEqual((await readdir(temporary)).sort(), [...assets].sort());
-    // Import the actual production handler; only the bind port and asset directory differ.
+    const assets = ['app.mjs', 'arrecifes_calles.json', 'game.mjs', 'index.html', 'play.html', 'styles.css'];
+    for (const asset of assets) await copyFile(new URL(`frontend/${asset}`, root), join(temporary, asset));
+    assert.deepEqual((await readdir(temporary)).sort(), assets);
+    // Use the standalone Python server with just its practice assets.
     server = spawn('python3', ['-B', '-u', '-c',
       'from pathlib import Path; import sys; from backend.serve_static import StaticServer; server = StaticServer(("127.0.0.1", 0), Path(sys.argv[1])); print(server.server_port, flush=True); server.serve_forever()', temporary],
     { cwd: fileURLToPath(root), stdio: ['ignore', 'pipe', 'pipe'] });
